@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.db.models import Count, Q, Sum
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -19,6 +19,7 @@ from django.views.generic import RedirectView, TemplateView
 
 from . import forms as core_forms
 from . import models
+from . import exportacao
 
 
 # ---------- Auth ----------
@@ -682,3 +683,25 @@ class BuscaVeiculosJson(LoginRequiredMixin, View):
 class HealthView(View):
     def get(self, request):
         return JsonResponse({"status": "ok"})
+
+
+# ---------- Exportação (PDF / XLSX) ----------
+class RelatorioExportarPdf(LoginRequiredMixin, View):
+    def get(self, request):
+        conteudo = exportacao.gerar_pdf()
+        stamp = timezone.localtime().strftime("%Y%m%d-%H%M")
+        resp = HttpResponse(conteudo, content_type="application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="samu192-relatorio-{stamp}.pdf"'
+        return resp
+
+
+class RelatorioExportarXlsx(LoginRequiredMixin, View):
+    def get(self, request):
+        conteudo = exportacao.gerar_xlsx()
+        stamp = timezone.localtime().strftime("%Y%m%d-%H%M")
+        resp = HttpResponse(
+            conteudo,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        resp["Content-Disposition"] = f'attachment; filename="samu192-relatorio-{stamp}.xlsx"'
+        return resp

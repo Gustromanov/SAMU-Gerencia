@@ -46,6 +46,14 @@ Sistema fullstack em PT-BR para o SAMU local, cadastros e gerenciamento de:
 - Seed com 32 medicamentos, 44 lotes, 10 funcionários, 8 veículos, 35 movimentações
 - Testes automatizados 22/22 (pytest) e testes frontend Playwright — 100% passaram
 
+## Update 05/08/2026 · Exportação e empacotamento desktop
+- **Exportar PDF** do relatório (ReportLab) — dashboard operacional em uma página
+- **Exportar XLSX** (openpyxl) — 5 abas: Resumo, Lotes, Distribuições, Funcionários, Veículos
+- Botões na tela Relatório: `Baixar planilha (.xlsx)` e `Baixar PDF`
+- **PyInstaller spec** (`backend/samu192.spec`) + script `backend/build_desktop.sh` empacotam o app como executável nativo (.exe / .app / binário Linux)
+- `main.py` atualizado: suporta modo frozen (PyInstaller), banco persistente ao lado do executável, porta livre automática
+- README completo em `/app/backend/README.md`
+
 ## Backlog / Próximas melhorias possíveis
 - Substituir Tailwind CDN por build production (PostCSS)
 - Validação de dígitos verificadores do CPF

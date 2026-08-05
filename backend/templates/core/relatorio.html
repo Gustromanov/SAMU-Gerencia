@@ -3,10 +3,24 @@
 
 {% block content %}
 <div class="max-w-[1400px] mx-auto space-y-6">
-    <div>
-        <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Panorama operacional</div>
-        <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Relatório</h1>
-        <p class="text-sm text-neutrals-600 mt-1">Painel geral com indicadores, distribuições e alertas prioritários.</p>
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+            <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Panorama operacional</div>
+            <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Relatório</h1>
+            <p class="text-sm text-neutrals-600 mt-1">Painel geral com indicadores, distribuições e alertas prioritários.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'relatorio_xlsx' %}"
+                class="inline-flex items-center gap-2 rounded-xl bg-white border border-greens-good text-greens-good font-semibold px-4 py-2.5 hover:bg-greens-pale transition"
+                data-testid="btn-exportar-xlsx">
+                <i data-lucide="file-spreadsheet" class="icon"></i> Baixar planilha (.xlsx)
+            </a>
+            <a href="{% url 'relatorio_pdf' %}"
+                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card transition"
+                data-testid="btn-exportar-pdf">
+                <i data-lucide="file-text" class="icon"></i> Baixar PDF
+            </a>
+        </div>
     </div>
 
     {# KPIs #}

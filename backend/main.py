@@ -3,34 +3,54 @@ main.py — Empacota o SAMU 192 como app desktop com pywebview.
 
 Requisitos: Python 3.10+, Django, pywebview, whitenoise.
 Instale (localmente) com:
-    pip install django==5.1.4 pywebview whitenoise
+    pip install django==5.1.4 pywebview whitenoise openpyxl reportlab
 
-Rodando:
+Rodando (modo dev):
     python main.py
 
-O SQLite fica em `db.sqlite3` no mesmo diretório, sem risco de perder dados
-ao fechar. A exclusão só ocorre via interface do sistema.
+Empacotando (.exe / .app / binário Linux):
+    bash build_desktop.sh
+    # ou manualmente:  pyinstaller samu192.spec --clean
+
+O SQLite fica em `db.sqlite3` no diretório do executável, sem risco de perder
+dados ao fechar. A exclusão só ocorre via interface do próprio sistema.
 """
 from __future__ import annotations
 
 import os
+import socket
 import sys
 import threading
 import time
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent
+def _resource_base() -> Path:
+    """Diretório de trabalho — considera empacotamento via PyInstaller."""
+    if getattr(sys, "frozen", False):  # PyInstaller
+        # sys._MEIPASS aponta para o diretório temporário com os assets;
+        # o banco e arquivos de usuário ficam ao lado do executável.
+        exe_dir = Path(sys.executable).resolve().parent
+        os.environ["SAMU_ASSETS_BASE"] = str(Path(sys._MEIPASS))  # type: ignore[attr-defined]
+        return exe_dir
+    return Path(__file__).resolve().parent
+
+
+BASE_DIR = _resource_base()
 sys.path.insert(0, str(BASE_DIR))
+# Quando empacotado, os módulos Django estão dentro de _MEIPASS:
+if getattr(sys, "frozen", False):
+    sys.path.insert(0, os.environ["SAMU_ASSETS_BASE"])
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "samu.settings")
-# Local desktop: expor sem prefixo /api, direto na raiz.
-os.environ["DJANGO_FORCE_SCRIPT_NAME"] = ""
 
-# Reajuste dinâmico: quando rodando no desktop, remove o FORCE_SCRIPT_NAME.
 import samu.settings as django_settings  # noqa: E402
 
+# Modo desktop: URLs sem prefixo /api, sirva na raiz.
 django_settings.FORCE_SCRIPT_NAME = None
+# Banco no diretório do executável, sobrevive a atualizações do app.
+django_settings.DATABASES["default"]["NAME"] = str(BASE_DIR / "db.sqlite3")
+django_settings.STATIC_ROOT = str(BASE_DIR / "staticfiles")
 
 import django  # noqa: E402
 
@@ -47,7 +67,17 @@ def _prepare_database() -> None:
         call_command("seed_samu", verbosity=1)
 
 
-def _run_django(port: int = 8765) -> None:
+def _find_free_port(preferred: int = 8765) -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", preferred))
+            return preferred
+        except OSError:
+            s.bind(("127.0.0.1", 0))
+            return s.getsockname()[1]
+
+
+def _run_django(port: int) -> None:
     from django.core.wsgi import get_wsgi_application
     from wsgiref.simple_server import make_server
 
@@ -59,11 +89,17 @@ def _run_django(port: int = 8765) -> None:
 def main() -> None:
     _prepare_database()
 
-    port = 8765
+    port = _find_free_port(8765)
     thread = threading.Thread(target=_run_django, args=(port,), daemon=True)
     thread.start()
 
-    time.sleep(0.4)  # pequena espera para o servidor subir
+    # aguarda servidor
+    for _ in range(30):
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                break
+        except OSError:
+            time.sleep(0.1)
 
     try:
         import webview  # type: ignore

@@ -50,6 +50,8 @@ urlpatterns = [
 
     # Relatório
     path("relatorio/", views.RelatorioView.as_view(), name="relatorio"),
+    path("relatorio/exportar/pdf/", views.RelatorioExportarPdf.as_view(), name="relatorio_pdf"),
+    path("relatorio/exportar/xlsx/", views.RelatorioExportarXlsx.as_view(), name="relatorio_xlsx"),
 
     # Perfil
     path("perfil/", views.PerfilView.as_view(), name="perfil"),
