@@ -1,0 +1,50 @@
+{% extends "core/base.html" %}
+{% block title %}{% if funcionario %}Editar{% else %}Novo{% endif %} funcionário · SAMU 192{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex items-center gap-3">
+        <a href="{% url 'funcionarios_lista' %}" class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="arrow-left" class="icon-lg"></i></a>
+        <div>
+            <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Equipe</div>
+            <h1 class="font-display text-3xl font-bold">{% if funcionario %}Editar funcionário{% else %}Novo funcionário{% endif %}</h1>
+        </div>
+    </div>
+
+    <form method="post" class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-5">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Nome completo</span>{{ form.nome }}{% if form.nome.errors %}<div class="text-xs text-samu mt-1">{{ form.nome.errors|join:" " }}</div>{% endif %}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">CPF</span>{{ form.cpf }}{% if form.cpf.errors %}<div class="text-xs text-samu mt-1">{{ form.cpf.errors|join:" " }}</div>{% endif %}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Função</span>{{ form.funcao }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">E-mail</span>{{ form.email }}{% if form.email.errors %}<div class="text-xs text-samu mt-1">{{ form.email.errors|join:" " }}</div>{% endif %}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Telefone</span>{{ form.telefone }}</label>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <a href="{% url 'funcionarios_lista' %}" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutrals-600 hover:bg-neutrals-100">Cancelar</a>
+            <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="submit-funcionario">Salvar</button>
+        </div>
+    </form>
+
+    {% if funcionario %}
+    <div class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6">
+        <div class="font-display text-lg font-bold mb-3">Histórico de movimentações</div>
+        <div class="divide-y divide-neutrals-200">
+            {% for m in movimentacoes %}
+            <div class="py-3 flex items-center gap-3">
+                {% if m.tipo == 'ENTRADA' %}
+                <div class="w-8 h-8 rounded-lg bg-greens-pale text-greens-good flex items-center justify-center"><i data-lucide="arrow-down-to-line" class="icon"></i></div>
+                {% else %}
+                <div class="w-8 h-8 rounded-lg bg-orange-pale text-orange-deep flex items-center justify-center"><i data-lucide="arrow-up-from-line" class="icon"></i></div>
+                {% endif %}
+                <div class="flex-1">
+                    <div class="text-sm"><span class="font-semibold">{{ m.get_tipo_display }}</span> · {{ m.lote.medicamento.nome }} <span class="text-neutrals-600">({{ m.lote.codigo }})</span></div>
+                    <div class="text-xs text-neutrals-600">{{ m.quantidade }} un · {{ m.horario|date:"d/m/Y H:i" }}{% if m.origem %} · {{ m.origem }}{% endif %}{% if m.destino %} · {{ m.destino }}{% endif %}</div>
+                </div>
+            </div>
+            {% empty %}<div class="text-sm text-neutrals-600 py-4">Nenhuma movimentação registrada por este funcionário.</div>{% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

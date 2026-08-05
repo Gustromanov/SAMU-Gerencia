@@ -1,0 +1,204 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SAMU 192 · Sistema de estoque{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              samu: {
+                DEFAULT: '#DC2626',
+                dark: '#7F1D1D',
+                soft: '#FCA5A5',
+                cream: '#FEF2F2',
+              },
+              orange: {
+                deep: '#C2410C',
+                soft: '#FDBA74',
+                pale: '#FFEDD5',
+              },
+              yellow: { warn: '#FBBF24' },
+              greens: { good: '#16A34A', pale: '#DCFCE7' },
+              neutrals: {
+                0: '#FFFFFF',
+                50: '#FAFAFA',
+                100: '#F5F5F5',
+                200: '#E5E5E5',
+                300: '#D4D4D4',
+                600: '#525252',
+                800: '#262626',
+                900: '#171717',
+              },
+            },
+            fontFamily: {
+              display: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'],
+              sans: ['"Inter Tight"', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'monospace'],
+            },
+            boxShadow: {
+              card: '0 1px 2px rgba(15,23,42,0.05), 0 8px 24px rgba(15,23,42,0.05)',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body { font-family: 'Inter Tight', system-ui, sans-serif; background: #FAFAFA; }
+      h1, h2, h3, .display { font-family: 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing: -0.02em; }
+      .icon { width: 1.05rem; height: 1.05rem; stroke-width: 1.75; }
+      .icon-lg { width: 1.35rem; height: 1.35rem; stroke-width: 1.75; }
+      .badge { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .55rem; font-size: .72rem; font-weight: 600; border-radius: 999px; letter-spacing: .01em; }
+      .sidebar-item { transition: all .2s ease; }
+      .sidebar-item.active { background: linear-gradient(135deg, #DC2626, #7F1D1D); color: white; }
+      .sidebar-item.active .icon-wrap { background: rgba(255,255,255,.18); }
+      .table-row:hover { background: #FAFAFA; }
+      .noise { background-image: radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px); background-size: 4px 4px; }
+      .autocomplete-list { max-height: 320px; overflow-y: auto; }
+      details > summary { list-style: none; cursor: pointer; }
+      details > summary::-webkit-details-marker { display: none; }
+      @keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      .anim-in { animation: fadeInUp .35s ease both; }
+    </style>
+</head>
+<body class="text-neutrals-800">
+
+{% if user.is_authenticated %}
+<div class="flex min-h-screen">
+    {# ---------- Sidebar ---------- #}
+    <aside class="hidden lg:flex flex-col w-72 shrink-0 border-r border-neutrals-200 bg-white">
+        <div class="relative overflow-hidden">
+            <div class="p-6 bg-gradient-to-br from-samu-dark via-samu to-orange-deep text-white noise">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/20">
+                        <i data-lucide="ambulance" class="icon-lg text-white"></i>
+                    </div>
+                    <div>
+                        <div class="font-display font-bold text-lg leading-tight">SAMU 192</div>
+                        <div class="text-[10px] tracking-widest uppercase text-white/70">Sistema oficial</div>
+                    </div>
+                </div>
+                <div class="mt-6 font-display text-2xl leading-tight">
+                    Salvar vidas<br><span class="italic text-orange-soft">começa no estoque.</span>
+                </div>
+                <div class="mt-6 grid grid-cols-3 gap-2 text-center">
+                    <div class="rounded-lg bg-white/10 py-2">
+                        <div class="font-display text-lg font-bold leading-none">192</div>
+                        <div class="text-[9px] uppercase tracking-widest text-white/70 mt-1">emergência</div>
+                    </div>
+                    <div class="rounded-lg bg-white/10 py-2">
+                        <div class="font-display text-lg font-bold leading-none">24/7</div>
+                        <div class="text-[9px] uppercase tracking-widest text-white/70 mt-1">operação</div>
+                    </div>
+                    <div class="rounded-lg bg-white/10 py-2">
+                        <div class="font-display text-lg font-bold leading-none">100%</div>
+                        <div class="text-[9px] uppercase tracking-widest text-white/70 mt-1">controle</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-3 py-4 space-y-1">
+            {% for item in sidebar_itens %}
+            <a href="{{ item.href }}"
+               class="sidebar-item {% if pagina_ativa == item.icone or item.url == 'medicamentos_lista' and pagina_ativa == 'medicamentos' or item.url == 'funcionarios_lista' and pagina_ativa == 'funcionarios' or item.url == 'veiculos_lista' and pagina_ativa == 'veiculos' or item.url == 'relatorio' and pagina_ativa == 'relatorio' or item.url == 'perfil' and pagina_ativa == 'perfil' %}active{% endif %} flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutrals-800 hover:bg-neutrals-100"
+               data-testid="nav-{{ item.icone }}">
+                <span class="icon-wrap w-8 h-8 rounded-lg bg-neutrals-100 flex items-center justify-center">
+                    {% if item.icone == 'pill' %}<i data-lucide="pill" class="icon"></i>
+                    {% elif item.icone == 'users' %}<i data-lucide="users" class="icon"></i>
+                    {% elif item.icone == 'ambulance' %}<i data-lucide="ambulance" class="icon"></i>
+                    {% elif item.icone == 'chart' %}<i data-lucide="bar-chart-3" class="icon"></i>
+                    {% elif item.icone == 'user' %}<i data-lucide="user" class="icon"></i>
+                    {% endif %}
+                </span>
+                <span>{{ item.nome }}</span>
+            </a>
+            {% endfor %}
+        </nav>
+
+        <div class="border-t border-neutrals-200 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-samu to-orange-deep text-white flex items-center justify-center font-display font-bold">
+                    {{ user.perfil.iniciais|default:user.username|slice:":2"|upper }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold truncate">{{ user.get_full_name|default:user.username }}</div>
+                    <div class="text-xs text-neutrals-600 truncate">{{ user.perfil.cargo|default:'Operador(a) SAMU' }}</div>
+                </div>
+                <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                    <button type="submit" class="text-neutrals-600 hover:text-samu p-2 rounded-lg hover:bg-samu-cream" title="Sair" data-testid="logout-btn">
+                        <i data-lucide="log-out" class="icon"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    {# ---------- Conteúdo principal ---------- #}
+    <main class="flex-1 min-w-0">
+        {# Barra topo mobile #}
+        <div class="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-neutrals-200">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-samu to-samu-dark text-white flex items-center justify-center">
+                    <i data-lucide="ambulance" class="icon"></i>
+                </div>
+                <span class="font-display font-bold">SAMU 192</span>
+            </div>
+            <details class="relative">
+                <summary class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="menu" class="icon-lg"></i></summary>
+                <div class="absolute right-0 top-full mt-2 w-56 bg-white border border-neutrals-200 rounded-xl shadow-card z-30 py-2">
+                    {% for item in sidebar_itens %}
+                        <a href="{{ item.href }}" class="block px-4 py-2 text-sm hover:bg-neutrals-100">{{ item.nome }}</a>
+                    {% endfor %}
+                    <form method="post" action="{% url 'logout' %}" class="border-t border-neutrals-200 mt-1 pt-1">{% csrf_token %}
+                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-samu hover:bg-samu-cream">Sair</button>
+                    </form>
+                </div>
+            </details>
+        </div>
+
+        {# Mensagens (toasts) #}
+        {% if messages %}
+        <div class="fixed top-5 right-5 z-40 space-y-2 max-w-sm" id="messages-container">
+            {% for message in messages %}
+            <div class="anim-in flex items-start gap-3 rounded-xl border shadow-card px-4 py-3 bg-white
+                {% if message.tags == 'success' %}border-greens-good{% elif message.tags == 'error' %}border-samu{% elif message.tags == 'warning' %}border-yellow-warn{% else %}border-neutrals-200{% endif %}"
+                data-testid="toast-{{ message.tags }}">
+                <div class="mt-0.5
+                    {% if message.tags == 'success' %}text-greens-good{% elif message.tags == 'error' %}text-samu{% elif message.tags == 'warning' %}text-yellow-warn{% else %}text-neutrals-600{% endif %}">
+                    {% if message.tags == 'success' %}<i data-lucide="check-circle-2" class="icon"></i>
+                    {% elif message.tags == 'error' %}<i data-lucide="alert-triangle" class="icon"></i>
+                    {% elif message.tags == 'warning' %}<i data-lucide="alert-circle" class="icon"></i>
+                    {% else %}<i data-lucide="info" class="icon"></i>{% endif %}
+                </div>
+                <div class="text-sm text-neutrals-800 flex-1">{{ message }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <script>setTimeout(() => { const c = document.getElementById('messages-container'); if (c) c.remove(); }, 4500);</script>
+        {% endif %}
+
+        <div class="px-6 lg:px-10 py-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+{% else %}
+    {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) window.lucide.createIcons();
+  });
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

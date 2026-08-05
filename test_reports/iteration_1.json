@@ -1,0 +1,39 @@
+{
+  "summary": "Testei backend (22 testes pytest — 100% aprovados) e frontend (Playwright) do sistema SAMU 192 (Django + templates). Login com admin/samu192 OK; KPIs, filtros, autocomplete, modal de movimentação, cadastros de funcionário/veículo com validações, gráficos e perfil funcionam corretamente.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Global", "issues": ["Tailwind sendo carregado via CDN (cdn.tailwindcss.com) — warning no console: 'should not be used in production'. Recomenda-se build via PostCSS/CLI para produção."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_samu_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Opcional) Substituir CDN do Tailwind por build de produção.",
+    "(Discrepância de contrato) O prompt cita data-testid 'mov-medicamento-input' mas o form usa 'mov-medicamento'. Igualmente coerente; apenas alinhar contrato se relevante."
+  ],
+  "critical_code_review_comments": [
+    "views.py L99-103: total_baixo/muito_baixo/vencendo iteram sobre models.Lote.objects.all() três vezes (N iterações * 3) — pode ser convertido para uma única query com aggregation/values. Não é bug, é otimização.",
+    "MovimentarView (views.py L292-317): quando 'query.isdigit()' filtra por ID OU nome contendo dígito — comportamento consistente, mas pode gerar ambiguidade em produção; documentar.",
+    "MovimentacaoForm: 'quantidade' com required=False + clean_quantidade default=1 pode confundir usuários que esqueceram de preencher (submete 1 silenciosamente). Considerar exigir campo.",
+    "CPF: apenas validação de formato regex, sem validar dígitos verificadores; provavelmente aceitável para MVP.",
+    "settings.py: revisar CSRF_TRUSTED_ORIGINS e DEBUG antes de produção (não verificado neste teste)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_samu_api.py (novo)"
+  ],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "100% dos fluxos principais"},
+  "test_credentials": "admin / samu192 (Django user)",
+  "seed_data_creation": "Não criei seed novo; utilizei dados populados por seed_samu (32 medicamentos, 44 lotes, 10 funcionários, 8 veículos). Perfil do admin foi editado para 'TEST Admin' / 'TEST Cargo' durante os testes.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_samu_api.py cobre: healthz, redirect root, login page, lista medicamentos + KPIs, autocomplete JSON (medicamentos/funcionários/veículos), entrada/saída (com FEFO), saída insuficiente rejeitada, ambiguidade, CPF inválido/duplicado, ano de veículo inválido, relatório JSON (tipo/forma/validade), perfil GET+POST. Rodar com REACT_APP_BACKEND_URL definida no ambiente. Frontend: uso de fluxo login via campos + fallback fetch documentado em /app/memory/test_credentials.md.",
+  "rca of the issue": "Nenhum bug crítico encontrado. Todas validações backend/frontend do escopo estão funcionando: login, listagem/KPIs, autocomplete, modal entrada/saída, FEFO, rejeição por estoque insuficiente, desambiguação, CPF formato+duplicado, ano do veículo, gráficos Chart.js data endpoint, perfil persistente."
+}

@@ -1,0 +1,97 @@
+{% extends "core/base.html" %}
+{% block title %}Entrar · SAMU 192{% endblock %}
+
+{% block auth_content %}
+<div class="min-h-screen grid lg:grid-cols-2 bg-neutrals-50">
+    <div class="relative overflow-hidden hidden lg:flex flex-col justify-between p-12 text-white bg-gradient-to-br from-samu-dark via-samu to-orange-deep noise">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center">
+                <i data-lucide="ambulance" class="icon-lg"></i>
+            </div>
+            <div>
+                <div class="font-display font-bold text-xl leading-none">SAMU 192</div>
+                <div class="text-[10px] uppercase tracking-[0.25em] text-white/70 mt-1">Sistema oficial</div>
+            </div>
+        </div>
+
+        <div class="max-w-md">
+            <div class="text-[11px] uppercase tracking-[0.3em] text-white/70 mb-4">Acesso ao sistema</div>
+            <h1 class="font-display text-5xl font-bold leading-[1.05]">Salvar vidas<br><span class="italic text-orange-soft">começa no estoque.</span></h1>
+            <p class="mt-6 text-white/80 text-sm leading-relaxed max-w-sm">Gerenciamento inteligente de medicamentos, frota e equipe para a unidade local do SAMU. Zero perda de dados, controle total.</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 max-w-md">
+            <div class="rounded-xl bg-white/10 backdrop-blur px-4 py-3">
+                <div class="font-display text-3xl font-bold leading-none">192</div>
+                <div class="text-[10px] uppercase tracking-widest text-white/70 mt-2">Emergência</div>
+            </div>
+            <div class="rounded-xl bg-white/10 backdrop-blur px-4 py-3">
+                <div class="font-display text-3xl font-bold leading-none">24/7</div>
+                <div class="text-[10px] uppercase tracking-widest text-white/70 mt-2">Operação</div>
+            </div>
+            <div class="rounded-xl bg-white/10 backdrop-blur px-4 py-3">
+                <div class="font-display text-3xl font-bold leading-none">100%</div>
+                <div class="text-[10px] uppercase tracking-widest text-white/70 mt-2">Controle</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center justify-center p-6 lg:p-16">
+        <div class="w-full max-w-md">
+            <div class="lg:hidden mb-8 flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-samu text-white flex items-center justify-center">
+                    <i data-lucide="ambulance" class="icon-lg"></i>
+                </div>
+                <div>
+                    <div class="font-display font-bold text-lg leading-none">SAMU 192</div>
+                    <div class="text-[10px] uppercase tracking-widest text-neutrals-600 mt-1">Sistema oficial</div>
+                </div>
+            </div>
+
+            <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold mb-3">Acesso ao sistema</div>
+            <h2 class="font-display text-3xl font-bold text-neutrals-900">Entrar na sua conta</h2>
+            <p class="text-sm text-neutrals-600 mt-2">Use suas credenciais oficiais para acessar o painel operacional.</p>
+
+            <form method="post" class="mt-8 space-y-4" data-testid="login-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="rounded-xl border border-samu bg-samu-cream text-samu-dark text-sm px-4 py-3">
+                    {{ form.non_field_errors|join:" " }}
+                </div>
+                {% endif %}
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Usuário</span>
+                    <div class="mt-1.5 relative">
+                        <i data-lucide="user" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
+                        {{ form.username }}
+                        <style>#id_username { padding-left: 2.5rem; }</style>
+                    </div>
+                </label>
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Senha</span>
+                    <div class="mt-1.5 relative">
+                        <i data-lucide="lock" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
+                        {{ form.password }}
+                        <style>#id_password { padding-left: 2.5rem; }</style>
+                    </div>
+                </label>
+                <button type="submit" data-testid="login-submit"
+                    class="mt-2 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold py-3.5 hover:from-samu-dark hover:to-samu shadow-card transition">
+                    Acessar sistema
+                    <i data-lucide="arrow-right" class="icon"></i>
+                </button>
+            </form>
+
+            <div class="mt-6 text-xs text-neutrals-600 flex items-center gap-2">
+                <i data-lucide="shield-check" class="icon text-greens-good"></i>
+                Acesso restrito à equipe operacional. Todas as ações são registradas.
+            </div>
+
+            <div class="mt-8 text-sm text-neutrals-600">
+                Ainda não tem cadastro?
+                <a href="{% url 'registrar' %}" class="text-samu font-semibold hover:underline" data-testid="link-registrar">Criar conta</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

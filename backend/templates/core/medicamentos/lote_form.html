@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}{% if lote %}Editar{% else %}Novo{% endif %} lote · SAMU 192{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center gap-3">
+        <a href="{% url 'medicamentos_lista' %}" class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="arrow-left" class="icon-lg"></i></a>
+        <div>
+            <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Lote</div>
+            <h1 class="font-display text-3xl font-bold">{% if lote %}Editar lote{% else %}Novo lote{% endif %}</h1>
+            <p class="text-sm text-neutrals-600 mt-1">Medicamento: <span class="font-semibold text-neutrals-900">{{ medicamento.nome }}</span></p>
+        </div>
+    </div>
+
+    <form method="post" class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-5">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Código</span>{{ form.codigo }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Validade</span>{{ form.validade }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Quantidade</span>{{ form.quantidade }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Situação</span>{{ form.situacao }}</label>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <a href="{% url 'medicamentos_lista' %}" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutrals-600 hover:bg-neutrals-100">Cancelar</a>
+            <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card">Salvar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "core/base.html" %}
+{% block title %}Relatório · SAMU 192{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto space-y-6">
+    <div>
+        <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Panorama operacional</div>
+        <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Relatório</h1>
+        <p class="text-sm text-neutrals-600 mt-1">Painel geral com indicadores, distribuições e alertas prioritários.</p>
+    </div>
+
+    {# KPIs #}
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="rounded-2xl bg-gradient-to-br from-samu to-samu-dark text-white p-5 shadow-card">
+            <div class="text-[10px] uppercase tracking-widest text-white/70">Estoque total</div>
+            <div class="font-display text-4xl font-bold mt-1">{{ kpis.estoque_total }}</div>
+            <div class="text-[10px] uppercase tracking-widest text-white/70 mt-1">unidades</div>
+        </div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
+            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Medicamentos</div>
+            <div class="font-display text-4xl font-bold mt-1">{{ kpis.medicamentos }}</div>
+        </div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
+            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Lotes</div>
+            <div class="font-display text-4xl font-bold mt-1">{{ kpis.lotes }}</div>
+        </div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
+            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Funcionários</div>
+            <div class="font-display text-4xl font-bold mt-1">{{ kpis.funcionarios }}</div>
+        </div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
+            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Veículos</div>
+            <div class="font-display text-4xl font-bold mt-1">{{ kpis.veiculos }}</div>
+        </div>
+    </div>
+
+    {# Charts #}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 rounded-2xl bg-white border border-neutrals-200 p-6 shadow-card">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <div class="font-display text-lg font-bold">Distribuição do estoque</div>
+                    <div class="text-xs text-neutrals-600">Total de unidades agrupadas pelo filtro selecionado.</div>
+                </div>
+                <div class="flex items-center gap-1 bg-neutrals-100 rounded-xl p-1" role="tablist">
+                    <button data-filtro="tipo" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition" data-testid="filtro-chart-tipo">Por tipo</button>
+                    <button data-filtro="forma" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition" data-testid="filtro-chart-forma">Por forma</button>
+                    <button data-filtro="validade" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition" data-testid="filtro-chart-validade">Por validade</button>
+                </div>
+            </div>
+            <div class="h-[320px]"><canvas id="chart-estoque"></canvas></div>
+        </div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-6 shadow-card">
+            <div class="font-display text-lg font-bold">Frota por status</div>
+            <div class="text-xs text-neutrals-600 mb-4">Distribuição das viaturas do SAMU.</div>
+            <div class="h-[320px]"><canvas id="chart-veiculos"></canvas></div>
+        </div>
+    </div>
+
+    {# Alertas #}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="rounded-2xl bg-white border border-orange-deep/30 p-5 shadow-card">
+            <div class="flex items-center gap-2 text-orange-deep font-semibold mb-3"><i data-lucide="alert-triangle" class="icon"></i> Estoque baixo</div>
+            <div class="divide-y divide-neutrals-200">
+                {% for l in baixo %}
+                <div class="py-2.5">
+                    <div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome }}</div>
+                    <div class="text-xs text-neutrals-600">{{ l.codigo }} · {{ l.medicamento.tipo.nome }} <span class="float-right font-mono">{{ l.quantidade }} un</span></div>
+                </div>
+                {% empty %}<div class="text-sm text-neutrals-600 py-4">Nenhum item em nível baixo.</div>{% endfor %}
+            </div>
+        </div>
+        <div class="rounded-2xl bg-white border border-samu-soft/60 p-5 shadow-card">
+            <div class="flex items-center gap-2 text-samu-dark font-semibold mb-3"><i data-lucide="alert-octagon" class="icon"></i> Muito baixo</div>
+            <div class="divide-y divide-neutrals-200">
+                {% for l in muito_baixo %}
+                <div class="py-2.5">
+                    <div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome }}</div>
+                    <div class="text-xs text-neutrals-600">{{ l.codigo }} · {{ l.medicamento.tipo.nome }} <span class="float-right font-mono text-samu-dark font-bold">{{ l.quantidade }} un</span></div>
+                </div>
+                {% empty %}<div class="text-sm text-neutrals-600 py-4">Sem itens críticos.</div>{% endfor %}
+            </div>
+        </div>
+        <div class="rounded-2xl bg-white border border-yellow-warn/50 p-5 shadow-card">
+            <div class="flex items-center gap-2 text-yellow-warn font-semibold mb-3"><i data-lucide="calendar-clock" class="icon"></i> Validade próxima</div>
+            <div class="divide-y divide-neutrals-200">
+                {% for l in vencendo %}
+                <div class="py-2.5">
+                    <div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome }}</div>
+                    <div class="text-xs text-neutrals-600">{{ l.codigo }} · {{ l.medicamento.tipo.nome }}
+                        <span class="float-right {% if l.vencido %}text-samu-dark{% else %}text-yellow-warn{% endif %} font-semibold">
+                        {% if l.vencido %}Vencido{% else %}{{ l.dias_para_validade }}d{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% empty %}<div class="text-sm text-neutrals-600 py-4">Nenhum lote próximo do vencimento.</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(() => {
+    const colorsBar = ['#DC2626', '#C2410C', '#FBBF24', '#16A34A', '#7F1D1D', '#FDBA74', '#525252', '#F87171'];
+    let chartEstoque, chartVeic;
+
+    function setActive(filtro) {
+        document.querySelectorAll('.filtro-btn').forEach(b => {
+            const on = b.dataset.filtro === filtro;
+            b.className = 'filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition ' + (on ? 'bg-white shadow text-samu-dark' : 'text-neutrals-600 hover:text-neutrals-900');
+        });
+    }
+
+    async function carregar(filtro) {
+        setActive(filtro);
+        const r = await fetch("{% url 'api_relatorio' %}?filtro=" + filtro);
+        const d = await r.json();
+
+        if (chartEstoque) chartEstoque.destroy();
+        chartEstoque = new Chart(document.getElementById('chart-estoque'), {
+            type: 'bar',
+            data: { labels: d.estoque.labels, datasets: [{ label: 'Unidades', data: d.estoque.valores, backgroundColor: d.estoque.labels.map((_,i) => colorsBar[i % colorsBar.length]), borderRadius: 8, borderSkipped: false }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#525252', font: { size: 11 } } },
+                    y: { beginAtZero: true, grid: { color: '#F5F5F5' }, ticks: { color: '#525252', font: { size: 11 } } }
+                }
+            }
+        });
+
+        if (!chartVeic) {
+            chartVeic = new Chart(document.getElementById('chart-veiculos'), {
+                type: 'doughnut',
+                data: { labels: d.veiculos.labels, datasets: [{ data: d.veiculos.valores, backgroundColor: ['#16A34A', '#FBBF24', '#DC2626'], borderWidth: 0 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '65%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+                }
+            });
+        }
+    }
+
+    document.querySelectorAll('.filtro-btn').forEach(b => b.addEventListener('click', () => carregar(b.dataset.filtro)));
+    carregar('tipo');
+})();
+</script>
+{% endblock %}

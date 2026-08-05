@@ -1,0 +1,110 @@
+{% extends "core/base.html" %}
+{% block title %}Funcionários · SAMU 192{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+            <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Equipe operacional</div>
+            <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Funcionários</h1>
+            <p class="text-sm text-neutrals-600 mt-1">{{ funcionarios|length }} registro(s) · gestão de contatos e histórico de movimentações.</p>
+        </div>
+        <a href="{% url 'funcionario_novo' %}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card transition self-start"
+            data-testid="btn-novo-funcionario">
+            <i data-lucide="user-plus" class="icon"></i> Novo funcionário
+        </a>
+    </div>
+
+    <form method="get" class="rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
+            <div class="relative">
+                <i data-lucide="search" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
+                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome, CPF ou e-mail..." autocomplete="off"
+                    class="w-full rounded-xl border border-neutrals-200 pl-10 pr-4 py-3 text-sm focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream"
+                    id="busca-funcionario" data-testid="busca-funcionario-input">
+                <div id="busca-func-sugestoes" class="autocomplete-list hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-neutrals-200 rounded-xl shadow-card"></div>
+            </div>
+            <select name="funcao" class="rounded-xl border border-neutrals-200 px-3 py-3 text-sm bg-white" data-testid="filtro-funcao">
+                <option value="">Todas as funções</option>
+                {% for value, label in funcoes %}<option value="{{ value }}" {% if filtro_funcao == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="rounded-xl bg-neutrals-900 text-white px-4 py-3 text-sm font-semibold hover:bg-neutrals-800">Filtrar</button>
+        </div>
+    </form>
+
+    <div class="rounded-2xl bg-white border border-neutrals-200 overflow-hidden shadow-card">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-[11px] uppercase tracking-wider text-neutrals-600 bg-neutrals-50 border-b border-neutrals-200">
+                    <tr>
+                        <th class="text-left px-6 py-3">Funcionário</th>
+                        <th class="text-left px-4 py-3">CPF</th>
+                        <th class="text-left px-4 py-3">Função</th>
+                        <th class="text-left px-4 py-3">Contato</th>
+                        <th class="text-right px-6 py-3">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-neutrals-200">
+                    {% for f in funcionarios %}
+                    <tr class="table-row" data-testid="linha-func-{{ f.id }}">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-samu to-orange-deep text-white flex items-center justify-center font-display font-bold text-sm">{{ f.iniciais }}</div>
+                                <div>
+                                    <div class="font-semibold text-neutrals-900">{{ f.nome }}</div>
+                                    <div class="text-xs text-neutrals-600">{{ f.movimentacoes.count }} movimentação(ões)</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-4 font-mono text-xs text-neutrals-800">{{ f.cpf }}</td>
+                        <td class="px-4 py-4"><span class="badge bg-neutrals-100 text-neutrals-800">{{ f.get_funcao_display }}</span></td>
+                        <td class="px-4 py-4 text-neutrals-800">
+                            <div>{{ f.email }}</div>
+                            <div class="text-xs text-neutrals-600">{{ f.telefone }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-1">
+                                <a href="{% url 'funcionario_editar' f.id %}" title="Editar" class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" data-testid="btn-editar-func-{{ f.id }}"><i data-lucide="pencil" class="icon"></i></a>
+                                <form method="post" action="{% url 'funcionario_excluir' f.id %}" onsubmit="return confirm('Remover funcionário {{ f.nome|escapejs }}?');">{% csrf_token %}
+                                    <button type="submit" class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" title="Excluir" data-testid="btn-excluir-func-{{ f.id }}"><i data-lucide="trash-2" class="icon"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}<tr><td colspan="5" class="px-6 py-16 text-center text-neutrals-600">
+                        <i data-lucide="users" class="icon-lg mx-auto text-neutrals-300 mb-2"></i>
+                        <div>Nenhum funcionário cadastrado.</div>
+                    </td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    const input = document.getElementById('busca-funcionario');
+    const list = document.getElementById('busca-func-sugestoes');
+    let deb;
+    input.addEventListener('input', () => {
+        clearTimeout(deb);
+        const q = input.value.trim();
+        if (!q) { list.classList.add('hidden'); return; }
+        deb = setTimeout(async () => {
+            const r = await fetch("{% url 'api_busca_funcionarios' %}?q=" + encodeURIComponent(q));
+            const d = await r.json();
+            if (!d.resultados.length) { list.classList.add('hidden'); return; }
+            list.innerHTML = d.resultados.map(x => `
+                <button type="button" class="w-full text-left px-4 py-2.5 hover:bg-neutrals-50 border-b border-neutrals-100 last:border-0" onclick="window.location.href='?q=${encodeURIComponent(x.nome)}'">
+                    <div class="text-sm font-semibold">${x.nome}</div>
+                    <div class="text-xs text-neutrals-600">${x.funcao} · ${x.cpf}</div>
+                </button>`).join('');
+            list.classList.remove('hidden');
+        }, 180);
+    });
+    document.addEventListener('click', (e) => { if (!list.contains(e.target) && e.target !== input) list.classList.add('hidden'); });
+})();
+</script>
+{% endblock %}
