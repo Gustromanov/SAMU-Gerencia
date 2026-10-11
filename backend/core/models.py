@@ -1,13 +1,14 @@
 """Modelos de domínio do SAMU 192 (Django ORM)."""
-from django.db import models
+from __future__ import annotations
+
+from datetime import timedelta
 from django.contrib.auth.models import User
+from django.db import models
 from django.utils import timezone
 
 
 # ---------- Tabelas de lookup ----------
 class TipoMedicamento(models.Model):
-    """Categoria/finalidade do medicamento (analgésico, antibiótico, vacina, etc.)."""
-
     nome = models.CharField(max_length=80, unique=True)
     slug = models.SlugField(max_length=80, unique=True)
 
@@ -16,13 +17,11 @@ class TipoMedicamento(models.Model):
         verbose_name_plural = "Tipos de medicamento"
         ordering = ["nome"]
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self):
         return self.nome
 
 
 class FormaMedicamento(models.Model):
-    """Forma farmacêutica (comprimido, cápsula, gotas, ampola, etc.)."""
-
     nome = models.CharField(max_length=80, unique=True)
     slug = models.SlugField(max_length=80, unique=True)
 
@@ -31,15 +30,51 @@ class FormaMedicamento(models.Model):
         verbose_name_plural = "Formas farmacêuticas"
         ordering = ["nome"]
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self):
         return self.nome
+
+
+# ---------- Configuração do sistema (singleton) ----------
+class Configuracao(models.Model):
+    """Painel do administrador: thresholds de estoque/validade e diretório padrão de exports."""
+
+    # Estoque (unidades)
+    estoque_muito_baixo = models.PositiveIntegerField(default=5)
+    estoque_baixo = models.PositiveIntegerField(default=15)
+    estoque_alto = models.PositiveIntegerField(default=200)
+
+    # Validade (dias a partir de hoje)
+    validade_muito_proximo = models.PositiveIntegerField(default=15)
+    validade_proximo = models.PositiveIntegerField(default=60)
+    validade_controlado = models.PositiveIntegerField(default=180)
+    # <0 => Vencido ; >controlado => Distante
+
+    # Outras preferências
+    diretorio_downloads = models.CharField(max_length=512, blank=True, default="")
+    intervalo_dias_padrao = models.PositiveIntegerField(default=30)
+
+    # Flag: thresholds de validade foram definidos pelo admin?
+    validade_configurada = models.BooleanField(default=False)
+
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuração"
+        verbose_name_plural = "Configurações"
+
+    def __str__(self):
+        return "Configuração do sistema"
+
+    @classmethod
+    def obter(cls) -> "Configuracao":
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
 
 
 # ---------- Medicamento / Lote ----------
 class Medicamento(models.Model):
-    """Um medicamento cadastrado (identidade lógica). Cada lote é uma linha em Lote."""
-
     nome = models.CharField(max_length=160)
+    metragem = models.CharField(max_length=40, blank=True, default="", help_text="Ex.: 500mg, 10mg/mL, 20mL")
     tipo = models.ForeignKey(TipoMedicamento, on_delete=models.PROTECT, related_name="medicamentos")
     forma = models.ForeignKey(FormaMedicamento, on_delete=models.PROTECT, related_name="medicamentos")
     complemento = models.CharField(max_length=240, blank=True, default="")
@@ -51,13 +86,18 @@ class Medicamento(models.Model):
         verbose_name_plural = "Medicamentos"
         constraints = [
             models.UniqueConstraint(
-                fields=["nome", "tipo", "forma"], name="uniq_medicamento_nome_tipo_forma"
+                fields=["nome", "metragem", "tipo", "forma"],
+                name="uniq_medicamento_nome_metragem_tipo_forma",
             )
         ]
-        ordering = ["nome"]
+        ordering = ["nome", "metragem"]
 
-    def __str__(self) -> str:  # pragma: no cover
-        return f"{self.nome} — {self.tipo.nome} / {self.forma.nome}"
+    def __str__(self):
+        return f"{self.nome} {self.metragem} — {self.tipo.nome}/{self.forma.nome}".strip()
+
+    @property
+    def nome_exibicao(self) -> str:
+        return f"{self.nome} {self.metragem}".strip()
 
     @property
     def quantidade_total(self) -> int:
@@ -69,16 +109,11 @@ class Medicamento(models.Model):
 
 
 class Lote(models.Model):
-    """Lote específico de um medicamento (código, validade, quantidade)."""
-
     SITUACAO_CHOICES = [
-        ("LOTEADO", "Loteado"),
         ("RECEBIDO", "Recebido"),
+        ("LOTEADO", "Entregue"),
         ("DOADO", "Doado"),
     ]
-
-    NIVEL_MUITO_BAIXO = 5
-    NIVEL_BAIXO = 15
 
     medicamento = models.ForeignKey(Medicamento, on_delete=models.CASCADE, related_name="lotes")
     codigo = models.CharField(max_length=64)
@@ -96,20 +131,34 @@ class Lote(models.Model):
         ]
         ordering = ["validade", "codigo"]
 
-    def __str__(self) -> str:  # pragma: no cover
-        return f"{self.codigo} — {self.medicamento.nome}"
+    def __str__(self):
+        return f"{self.codigo} — {self.medicamento.nome_exibicao}"
+
+    def _cfg(self) -> Configuracao:
+        if not hasattr(self, "_cached_cfg"):
+            self._cached_cfg = Configuracao.obter()
+        return self._cached_cfg
 
     @property
     def nivel_estoque(self) -> str:
-        if self.quantidade <= self.NIVEL_MUITO_BAIXO:
+        cfg = self._cfg()
+        q = self.quantidade
+        if q <= cfg.estoque_muito_baixo:
             return "MUITO_BAIXO"
-        if self.quantidade <= self.NIVEL_BAIXO:
+        if q <= cfg.estoque_baixo:
             return "BAIXO"
+        if q >= cfg.estoque_alto:
+            return "ALTO"
         return "NORMAL"
 
     @property
     def nivel_estoque_label(self) -> str:
-        return {"MUITO_BAIXO": "Muito baixo", "BAIXO": "Baixo", "NORMAL": "Normal"}[self.nivel_estoque]
+        return {
+            "MUITO_BAIXO": "Muito baixo",
+            "BAIXO": "Baixo",
+            "NORMAL": "Normal",
+            "ALTO": "Alto",
+        }[self.nivel_estoque]
 
     @property
     def dias_para_validade(self) -> int:
@@ -120,13 +169,41 @@ class Lote(models.Model):
         return self.dias_para_validade < 0
 
     @property
-    def proximo_vencimento(self) -> bool:
-        return 0 <= self.dias_para_validade <= 30
+    def nivel_validade(self) -> str:
+        """Retorna a classificação de validade conforme Configuracao."""
+        cfg = self._cfg()
+        if not cfg.validade_configurada:
+            return "NAO_DEFINIDO"
+        d = self.dias_para_validade
+        if d < 0:
+            return "VENCIDO"
+        if d <= cfg.validade_muito_proximo:
+            return "MUITO_PROXIMO"
+        if d <= cfg.validade_proximo:
+            return "PROXIMO"
+        if d <= cfg.validade_controlado:
+            return "CONTROLADO"
+        return "DISTANTE"
+
+    @property
+    def nivel_validade_label(self) -> str:
+        return {
+            "VENCIDO": "Vencido",
+            "MUITO_PROXIMO": "Muito próximo",
+            "PROXIMO": "Próximo",
+            "CONTROLADO": "Controlado",
+            "DISTANTE": "Distante",
+            "NAO_DEFINIDO": "—",
+        }[self.nivel_validade]
+
+    @property
+    def mostra_dias_restantes(self) -> bool:
+        return self.nivel_validade in {"VENCIDO", "MUITO_PROXIMO", "PROXIMO"}
 
 
 # ---------- Funcionário ----------
 class Funcionario(models.Model):
-    """Colaborador da unidade SAMU."""
+    """Cadastro profissional (independente da conta de login — serve para registro de manuseio)."""
 
     FUNCAO_CHOICES = [
         ("MEDICO", "Médico(a)"),
@@ -136,14 +213,15 @@ class Funcionario(models.Model):
         ("FARMACEUTICO", "Farmacêutico(a)"),
         ("ADMINISTRATIVO", "Administrativo"),
         ("COORDENADOR", "Coordenador(a)"),
+        ("AUXILIAR", "Auxiliar"),
         ("OUTRO", "Outro"),
     ]
 
-    cpf = models.CharField(max_length=14, unique=True, help_text="Formato 000.000.000-00")
+    cpf = models.CharField(max_length=14, unique=True, blank=True, default="")
     nome = models.CharField(max_length=160)
     funcao = models.CharField(max_length=24, choices=FUNCAO_CHOICES)
     email = models.EmailField(unique=True)
-    telefone = models.CharField(max_length=32)
+    telefone = models.CharField(max_length=32, blank=True, default="")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     usuario = models.OneToOneField(
@@ -155,7 +233,7 @@ class Funcionario(models.Model):
         verbose_name_plural = "Funcionários"
         ordering = ["nome"]
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self):
         return self.nome
 
     @property
@@ -170,19 +248,21 @@ class Funcionario(models.Model):
 
 # ---------- Veículo ----------
 class Veiculo(models.Model):
-    """Viatura da unidade SAMU."""
-
     STATUS_CHOICES = [
         ("NORMAL", "Normal"),
         ("MANUTENCAO", "Em manutenção"),
         ("INATIVO", "Inativo"),
     ]
+    TIPO_CHOICES = [
+        ("VAN", "Van / Ambulância"),
+        ("CARRO", "Carro"),
+        ("MOTO", "Motolância"),
+    ]
 
-    codigo_id = models.CharField(
-        max_length=32, unique=True, help_text="Identificador visível da viatura (ex.: USB-01)"
-    )
+    codigo_id = models.CharField(max_length=32, unique=True, blank=True, default="")
     modelo = models.CharField(max_length=120)
     ano = models.PositiveIntegerField()
+    tipo = models.CharField(max_length=16, choices=TIPO_CHOICES, default="VAN")
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="NORMAL")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -192,20 +272,40 @@ class Veiculo(models.Model):
         verbose_name_plural = "Veículos"
         ordering = ["codigo_id"]
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self):
         return f"{self.codigo_id} — {self.modelo}"
+
+    def save(self, *args, **kwargs):
+        if not self.codigo_id:
+            # Gera ID automático baseado em tipo + sequencial
+            prefixos = {"VAN": "USB", "CARRO": "USA", "MOTO": "MOTO"}
+            prefixo = prefixos.get(self.tipo, "VEI")
+            ultimo = (
+                Veiculo.objects.filter(codigo_id__startswith=f"{prefixo}-")
+                .order_by("-id").first()
+            )
+            if ultimo and "-" in ultimo.codigo_id:
+                try:
+                    n = int(ultimo.codigo_id.split("-")[-1]) + 1
+                except (ValueError, IndexError):
+                    n = 1
+            else:
+                n = 1
+            self.codigo_id = f"{prefixo}-{n:02d}"
+        super().save(*args, **kwargs)
 
 
 # ---------- Movimentação de estoque ----------
 class Movimentacao(models.Model):
-    """Registro histórico de entrada/saída de um lote de medicamento."""
-
     TIPO_CHOICES = [("ENTRADA", "Entrada"), ("SAIDA", "Saída")]
 
     tipo = models.CharField(max_length=8, choices=TIPO_CHOICES)
     lote = models.ForeignKey(Lote, on_delete=models.CASCADE, related_name="movimentacoes")
     funcionario = models.ForeignKey(
         Funcionario, on_delete=models.SET_NULL, null=True, blank=True, related_name="movimentacoes"
+    )
+    usuario = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="movimentacoes"
     )
     quantidade = models.PositiveIntegerField(default=1)
     origem = models.CharField(max_length=160, blank=True, default="")
@@ -218,24 +318,34 @@ class Movimentacao(models.Model):
         verbose_name_plural = "Movimentações"
         ordering = ["-horario"]
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self):
         return f"{self.get_tipo_display()} — {self.lote} ({self.quantidade})"
 
 
-# ---------- Perfil do usuário logado ----------
+# ---------- Perfil do usuário logado (com role!) ----------
 class Perfil(models.Model):
-    """Dados exibidos na tela de perfil (extensão do django.contrib.auth.User)."""
+    """Extensão de User com função (role) e dados pessoais do operador."""
+
+    FUNCAO_CHOICES = [
+        ("ADMINISTRADOR", "Administrador"),
+        ("MOTORISTA", "Motorista"),
+        ("AUXILIAR", "Auxiliar"),
+        ("ENFERMEIRO", "Enfermeiro"),
+    ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="perfil")
+    funcao = models.CharField(max_length=16, choices=FUNCAO_CHOICES, default="ADMINISTRADOR")
     telefone = models.CharField(max_length=32, blank=True, default="")
-    cargo = models.CharField(max_length=80, blank=True, default="Administrador(a) SAMU")
-    bio = models.TextField(blank=True, default="")
+    data_nascimento = models.DateField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Perfil"
         verbose_name_plural = "Perfis"
+        ordering = ["user__first_name"]
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self):
         return self.user.get_full_name() or self.user.username
 
     @property
@@ -247,3 +357,48 @@ class Perfil(models.Model):
         if len(partes) == 1:
             return partes[0][:2].upper()
         return (partes[0][0] + partes[-1][0]).upper()
+
+    @property
+    def is_admin(self) -> bool:
+        return self.funcao == "ADMINISTRADOR"
+
+    @property
+    def pode_ver_medicamentos(self) -> bool:
+        return self.funcao in {"ADMINISTRADOR", "AUXILIAR", "ENFERMEIRO"}
+
+    @property
+    def pode_ver_veiculos(self) -> bool:
+        return self.funcao in {"ADMINISTRADOR", "MOTORISTA"}
+
+    @property
+    def pode_ver_funcionarios(self) -> bool:
+        return self.funcao == "ADMINISTRADOR"
+
+    @property
+    def pode_editar_medicamentos(self) -> bool:
+        return self.funcao in {"ADMINISTRADOR", "AUXILIAR", "ENFERMEIRO"}
+
+    @property
+    def pode_deletar_medicamentos(self) -> bool:
+        return self.funcao == "ADMINISTRADOR"
+
+    @property
+    def pode_editar_veiculos(self) -> bool:
+        return self.funcao in {"ADMINISTRADOR", "MOTORISTA"}
+
+    @property
+    def pode_deletar_veiculos(self) -> bool:
+        return self.funcao == "ADMINISTRADOR"
+
+    @property
+    def pode_exportar(self) -> bool:
+        return self.funcao == "ADMINISTRADOR"
+
+    @property
+    def home_url_name(self) -> str:
+        return {
+            "ADMINISTRADOR": "medicamentos_lista",
+            "AUXILIAR": "medicamentos_lista",
+            "ENFERMEIRO": "medicamentos_lista",
+            "MOTORISTA": "veiculos_lista",
+        }[self.funcao]

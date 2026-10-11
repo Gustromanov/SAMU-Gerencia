@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+{% block title %}Editar conta · SAMU 192{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center gap-3">
+        <a href="{% url 'perfil' %}" class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="arrow-left" class="icon-lg"></i></a>
+        <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Painel do administrador</div><h1 class="font-display text-3xl font-bold">Editar conta</h1><p class="text-sm text-neutrals-600 mt-1">{{ conta.user.get_full_name|default:conta.user.username }} · {{ conta.user.email }}</p></div>
+    </div>
+
+    <form method="post" class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-5">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Nome completo</span>{{ form.first_name }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">E-mail</span>{{ form.email }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Telefone</span>{{ form.telefone }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Função</span>{{ form.funcao }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Nascimento</span>{{ form.data_nascimento }}</label>
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Redefinir senha</span>{{ form.nova_senha }}{% if form.nova_senha.errors %}<div class="text-xs text-samu mt-1">{{ form.nova_senha.errors|join:" " }}</div>{% endif %}</label>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <a href="{% url 'perfil' %}" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutrals-600 hover:bg-neutrals-100">Cancelar</a>
+            <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="salvar-conta">Salvar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

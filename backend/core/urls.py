@@ -8,39 +8,23 @@ urlpatterns = [
     path("logout/", views.LogoutView.as_view(), name="logout"),
     path("registrar/", views.RegistrarView.as_view(), name="registrar"),
 
-    # Medicamentos (lista = home após login)
+    # Medicamentos
     path("medicamentos/", views.MedicamentosListaView.as_view(), name="medicamentos_lista"),
     path("medicamentos/novo/", views.MedicamentoFormView.as_view(), name="medicamento_novo"),
     path("medicamentos/<int:pk>/editar/", views.MedicamentoFormView.as_view(), name="medicamento_editar"),
     path("medicamentos/<int:pk>/excluir/", views.MedicamentoExcluirView.as_view(), name="medicamento_excluir"),
-    path(
-        "medicamentos/<int:pk>/lotes/novo/",
-        views.LoteFormView.as_view(),
-        name="lote_novo",
-    ),
-    path(
-        "lotes/<int:pk>/editar/",
-        views.LoteFormView.as_view(),
-        name="lote_editar",
-    ),
+    path("medicamentos/<int:pk>/lotes/novo/", views.LoteFormView.as_view(), name="lote_novo"),
+    path("lotes/<int:pk>/editar/", views.LoteFormView.as_view(), name="lote_editar"),
     path("lotes/<int:pk>/excluir/", views.LoteExcluirView.as_view(), name="lote_excluir"),
 
     # Movimentações
     path("movimentar/", views.MovimentarView.as_view(), name="movimentar"),
 
-    # Funcionários
+    # Funcionários (admin)
     path("funcionarios/", views.FuncionariosListaView.as_view(), name="funcionarios_lista"),
     path("funcionarios/novo/", views.FuncionarioFormView.as_view(), name="funcionario_novo"),
-    path(
-        "funcionarios/<int:pk>/editar/",
-        views.FuncionarioFormView.as_view(),
-        name="funcionario_editar",
-    ),
-    path(
-        "funcionarios/<int:pk>/excluir/",
-        views.FuncionarioExcluirView.as_view(),
-        name="funcionario_excluir",
-    ),
+    path("funcionarios/<int:pk>/editar/", views.FuncionarioFormView.as_view(), name="funcionario_editar"),
+    path("funcionarios/<int:pk>/excluir/", views.FuncionarioExcluirView.as_view(), name="funcionario_excluir"),
 
     # Veículos
     path("veiculos/", views.VeiculosListaView.as_view(), name="veiculos_lista"),
@@ -53,15 +37,23 @@ urlpatterns = [
     path("relatorio/exportar/pdf/", views.RelatorioExportarPdf.as_view(), name="relatorio_pdf"),
     path("relatorio/exportar/xlsx/", views.RelatorioExportarXlsx.as_view(), name="relatorio_xlsx"),
 
-    # Perfil
+    # Perfil + painel do admin
     path("perfil/", views.PerfilView.as_view(), name="perfil"),
+    path("perfil/configuracao/", views.ConfiguracaoView.as_view(), name="configuracao"),
+    path("perfil/contas/<int:pk>/editar/", views.EditarContaView.as_view(), name="conta_editar"),
+    path("perfil/contas/<int:pk>/excluir/", views.ExcluirContaView.as_view(), name="conta_excluir"),
+    path("perfil/db/backup/", views.BackupDBView.as_view(), name="db_backup"),
+    path("perfil/db/restaurar/", views.RestaurarDBView.as_view(), name="db_restaurar"),
+    path("perfil/db/apagar/", views.ApagarDBView.as_view(), name="db_apagar"),
 
-    # APIs JSON (autocomplete)
+    # APIs JSON
     path("api/busca/medicamentos/", views.BuscaMedicamentosJson.as_view(), name="api_busca_medicamentos"),
+    path("api/busca/lotes/", views.BuscaLotesJson.as_view(), name="api_busca_lotes"),
     path("api/busca/funcionarios/", views.BuscaFuncionariosJson.as_view(), name="api_busca_funcionarios"),
+    path("api/funcionarios/<int:pk>/historico/", views.HistoricoFuncionarioJson.as_view(), name="api_historico_funcionario"),
     path("api/busca/veiculos/", views.BuscaVeiculosJson.as_view(), name="api_busca_veiculos"),
     path("api/relatorio/", views.RelatorioJson.as_view(), name="api_relatorio"),
+    path("api/rede-local/", views.RedeLocalJson.as_view(), name="api_rede_local"),
 
-    # Health check
     path("healthz/", views.HealthView.as_view(), name="healthz"),
 ]

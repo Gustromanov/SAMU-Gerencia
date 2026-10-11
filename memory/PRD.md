@@ -1,63 +1,60 @@
-# SAMU 192 · Sistema de Estoque, Medicamentos e Logística
+# SAMU 192 · PRD · Versão final
 
-## Problem statement (original)
-Sistema fullstack em PT-BR para o SAMU local, cadastros e gerenciamento de:
-- **Medicamentos** com lote, validade, nome, tipo, forma, complemento, situação, quantidade, nível de estoque (normal/baixo/muito baixo)
-- **Funcionários** com CPF, nome, função, contato (email/telefone), histórico
-- **Veículos** com id, modelo, ano, status (manutenção/normal/inativo)
-- Lista principal com barra de pesquisa + autocomplete, KPIs, filtros
-- Botões "Registrar entrada" e "Registrar saída" (modal com 4 campos)
-- Relatório com gráfico de barras (por tipo/forma/validade), rosca por status de veículo, listas de estoque baixo/muito baixo/vencendo
-- Perfil do usuário editável
-- Paleta oficial SAMU (branco/cinza/laranja/vermelho/preto/verde/amarelo)
-- Sem bugs: rejeita saída maior que estoque; valida entradas em todos os cadastros
+## Contexto
+Monolito Django 5 + SQLite + Tailwind para gestão de estoque, medicamentos, funcionários e frota do SAMU local de Guanambi/BA. Desenvolvido por Gustavo Batista, 2026.
 
-## Escolhas do usuário
-- **Stack:** Django 5 + SQLite + Tailwind (CDN) + Chart.js — empacotável desktop via pywebview (main.py)
-- **Auth:** login simples email/senha (Django auth)
-- **Veículos:** apenas id, modelo, ano, status (sem placa/base/KM)
-- **Seed:** dados de exemplo populados (~30 medicamentos, 10 funcionários, 8 veículos)
-- **Perfil:** editável
+## Papéis e permissões
+- **Administrador**: tudo + painel admin (Contas, Definições, Rede local, Backup/Restore/Apagar DB).
+- **Motorista**: Perfil, Veículos (CRUD exceto excluir), Relatório (apenas dashboards de frota).
+- **Auxiliar/Enfermeiro**: Perfil, Medicamentos (CRUD exceto excluir), Relatório (apenas dashboards de medicamentos).
+- Todas movimentações logadas com usuário + funcionário.
+- Apenas admin exporta PDF/XLSX e vê histórico de todos.
 
-## Arquitetura
-- Django ASGI servido pelo supervisor via uvicorn (`server:app` → `samu.asgi`).
-- Todas as rotas sob prefixo `/api/` (FORCE_SCRIPT_NAME) para compatibilidade com o ingress.
-- Frontend React apenas redireciona `/` para `/api/`.
-- Banco SQLite em `/app/backend/db.sqlite3`.
-- **main.py** (pywebview) empacota app desktop offline (usa WSGI local em 127.0.0.1:8765).
+## Modelo de dados (10 entidades)
+TipoMedicamento, FormaMedicamento, Configuracao (singleton), Medicamento (nome+metragem+tipo+forma únicos), Lote (medicamento+codigo únicos), Funcionario, Veiculo (codigo_id auto), Movimentacao, Perfil (OneToOne User), User (Django).
 
-## Modelo de domínio (Django ORM)
-- `TipoMedicamento`, `FormaMedicamento` (lookups)
-- `Medicamento` (nome + tipo + forma únicos) → `Lote` (código, validade, quantidade, situação)
-- `Funcionario` (CPF único, função, email, telefone)
-- `Veiculo` (código_id, modelo, ano, status)
-- `Movimentacao` (ENTRADA/SAIDA, lote, funcionário, quantidade, origem/destino, horário) — histórico completo
-- `Perfil` (extensão User com telefone/cargo/bio)
+## Features entregues (versão final)
+- **Autenticação**: login + registro com nome completo, nascimento, email, telefone, função, senha (mín 8 letras+números), remember me.
+- **Medicamentos**: lista agrupada por nome com setinha expansível (variantes + lotes), filtros combináveis (tipo, forma, nível, validade, lote), autocomplete, KPIs com tooltips, modal entrada/saída com 4 campos (medicamento, lote, quantidade obrigatórios + tipo/forma/origem opcionais), FEFO automático, erro em estoque insuficiente.
+- **Funcionários** (admin): setinha abre histórico detalhado estilo pergaminho ("Dr(a). Camila realizou a entrada de Adrenalina em 15 un — Quarta, 22/10/2026 às 19:45"), ordenado do mais recente, com animação scaleY+fade.
+- **Veículos**: tipo (Van/Carro/Moto), ID gerado automaticamente, filtros, setinha abre detalhes.
+- **Relatório**: 6 dashboards de medicamento + 2 de frota, toggle Barras/Pizza/Rosca, valores nominais+%, 3 listas de alertas (vencendo, baixo estoque, controlados) + 4ª lista com interseção, intervalo configurável para movimentação.
+- **Exportação**: PDF (ReportLab) e XLSX (openpyxl, 7 abas) só admin, com histórico de todos usuários + data cadastro + dias restantes. Botão "Anexar local" via showDirectoryPicker.
+- **Painel admin**: Contas CRUD, Definições (intervalos estoque/validade), Modo rede local (detecta IPs + copiar), Backup/Restaurar/Apagar BD.
+- **Footer**: tema vermelho em todas páginas com dados do dev (Gustavo Batista, Guanambi, contato.profissional.gustavo@outlook.com).
+- **Ícone**: SVG SAMU customizado como favicon e no sidebar/login.
 
-## O que foi implementado (05/08/2026)
-- Login/logout/registro com CSRF (trusted origins configurados para preview + emergentcf.cloud)
-- Lista de medicamentos com KPIs, autocomplete JSON, filtros (tipo/forma/nível), tabela com badges de estoque, ações edit/delete
-- Modal "Registrar entrada/saída" com 4 campos, FEFO na saída, rejeição por estoque insuficiente, mensagem de desambiguação se múltiplos matches
-- CRUD completo de Medicamento + Lote (regra de exclusão: se 1 lote apaga tudo; se >1 lote pede quantos)
-- CRUD de Funcionário (validação CPF formato + duplicidade), com histórico de movimentações
-- CRUD de Veículo (validação de ano 1980-2100)
-- Relatório com KPIs + gráfico de barras Chart.js (filtros tipo/forma/validade) + rosca de frota + listas de alertas
-- Perfil editável (nome, email, telefone, cargo, bio)
-- Seed com 32 medicamentos, 44 lotes, 10 funcionários, 8 veículos, 35 movimentações
-- Testes automatizados 22/22 (pytest) e testes frontend Playwright — 100% passaram
+## READMEs entregues
+1. `/app/README.md` — principal GitHub (visão geral, instalação rápida, links).
+2. `/app/backend/README_INSTALL.md` — passo a passo Windows/macOS/Linux + Android + desktop empacotado + rede local + backup.
+3. `/app/backend/README_FIREBASE.md` — sync BD com Firebase (Storage e Firestore) via UI do console e terminal, Win/Linux.
+4. `/app/backend/README_DEBUG.md` — todos erros possíveis categorizados em 12 seções com causa+solução.
+5. `/app/backend/README_CRONOGRAMA.md` — relatório detalhado 15/09–13/11 com obstáculos realistas de estudante jr.
+6. `/app/backend/README_PROMPT.md` — superprompt gigante para recriação total do zero.
 
-## Update 05/08/2026 · Exportação e empacotamento desktop
-- **Exportar PDF** do relatório (ReportLab) — dashboard operacional em uma página
-- **Exportar XLSX** (openpyxl) — 5 abas: Resumo, Lotes, Distribuições, Funcionários, Veículos
-- Botões na tela Relatório: `Baixar planilha (.xlsx)` e `Baixar PDF`
-- **PyInstaller spec** (`backend/samu192.spec`) + script `backend/build_desktop.sh` empacotam o app como executável nativo (.exe / .app / binário Linux)
-- `main.py` atualizado: suporta modo frozen (PyInstaller), banco persistente ao lado do executável, porta livre automática
-- README completo em `/app/backend/README.md`
+## Suporte à rede local
+- `python manage.py runserver 0.0.0.0:8765` ou `main.py` (desktop local).
+- Admin gera link `http://IP:8765/` via botão no painel; outros dispositivos (celulares/tablets/PCs na mesma Wi-Fi) acessam o mesmo banco.
+- Documentação de app Android via Capacitor (WebView wrapper) ou Chaquopy (Django embutido).
 
-## Backlog / Próximas melhorias possíveis
-- Substituir Tailwind CDN por build production (PostCSS)
-- Validação de dígitos verificadores do CPF
-- Exportação PDF/CSV de relatórios
-- Alertas por e-mail para validades vencendo (SendGrid)
-- Log de auditoria detalhado por usuário
-- App mobile / PWA
+## Casos de borda cobertos
+- Saída > estoque → erro.
+- Lote inexistente → orienta cadastro.
+- Admin não exclui a si mesmo.
+- Duplicação de medicamento (nome+metragem+tipo+forma) → prevenida.
+- CPF formato inválido → erro no form.
+- Validade não configurada → gráficos exibem placeholder.
+- Restaurar BD → fecha conexão antes + força logout.
+
+## Testes
+- 22 pytest + testes manuais via curl em todas rotas.
+- Todas 4 contas de role testadas: admin (200 em tudo), motorista (403 em med/func), auxiliar (403 em veículos/func), enfermeiro (igual auxiliar).
+- Exportação PDF/XLSX validada via HTTPS (headers corretos, bytes válidos).
+
+## Nota sobre `.emergent`
+Pasta `.emergent/` é da plataforma Emergent (deploy/preview). **Renomear quebra o deploy.** Em instalação local você pode ignorar/remover; nos READMEs isso é explicado.
+
+## Backlog
+- Build do executável com ícone oficial (gerar `.ico` do SVG).
+- APK Android compilado (requer máquina com Android Studio).
+- Pipeline Firebase automatizada por watcher em produção.

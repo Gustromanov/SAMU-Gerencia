@@ -5,19 +5,17 @@
 <div class="max-w-2xl mx-auto space-y-6">
     <div class="flex items-center gap-3">
         <a href="{% url 'veiculos_lista' %}" class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="arrow-left" class="icon-lg"></i></a>
-        <div>
-            <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Frota</div>
-            <h1 class="font-display text-3xl font-bold">{% if veiculo %}Editar veículo{% else %}Novo veículo{% endif %}</h1>
-        </div>
+        <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Frota</div><h1 class="font-display text-3xl font-bold">{% if veiculo %}Editar veículo{% else %}Novo veículo{% endif %}</h1></div>
     </div>
 
     <form method="post" class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-5">
         {% csrf_token %}
+        <div class="rounded-xl bg-neutrals-50 border border-neutrals-200 px-4 py-3 text-sm text-neutrals-600"><i data-lucide="info" class="icon inline"></i> O ID da viatura é gerado automaticamente a partir do tipo (ex.: USB-01, MOTO-02).</div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">ID da viatura</span>{{ form.codigo_id }}{% if form.codigo_id.errors %}<div class="text-xs text-samu mt-1">{{ form.codigo_id.errors|join:" " }}</div>{% endif %}</label>
-            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Modelo</span>{{ form.modelo }}</label>
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Modelo</span>{{ form.modelo }}</label>
             <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Ano</span>{{ form.ano }}{% if form.ano.errors %}<div class="text-xs text-samu mt-1">{{ form.ano.errors|join:" " }}</div>{% endif %}</label>
-            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Status</span>{{ form.status }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Tipo</span>{{ form.tipo }}</label>
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Status</span>{{ form.status }}</label>
         </div>
         <div class="flex items-center justify-end gap-2 pt-2">
             <a href="{% url 'veiculos_lista' %}" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutrals-600 hover:bg-neutrals-100">Cancelar</a>

@@ -4,156 +4,235 @@
 {% block content %}
 <div class="max-w-[1400px] mx-auto space-y-6">
 
-    {# ---------- Cabeçalho ---------- #}
     <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
             <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Estoque operacional</div>
             <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Medicamentos</h1>
-            <p class="text-sm text-neutrals-600 mt-1">Lotes ativos, filtros por tipo, forma e nível de estoque. Registre entradas e saídas com um clique.</p>
+            <p class="text-sm text-neutrals-600 mt-1">Agrupados por nome. Clique na setinha para ver variantes. Registre entradas e saídas com um clique.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <button data-open-modal="entrada"
-                class="inline-flex items-center gap-2 rounded-xl bg-white border border-greens-good text-greens-good font-semibold px-4 py-2.5 hover:bg-greens-pale transition"
-                data-testid="btn-registrar-entrada">
+            {% if pode_editar %}
+            <button data-open-modal="entrada" class="inline-flex items-center gap-2 rounded-xl bg-white border border-greens-good text-greens-good font-semibold px-4 py-2.5 hover:bg-greens-pale" data-testid="btn-registrar-entrada">
                 <i data-lucide="arrow-down-to-line" class="icon"></i> Registrar entrada
             </button>
-            <button data-open-modal="saida"
-                class="inline-flex items-center gap-2 rounded-xl bg-white border border-orange-deep text-orange-deep font-semibold px-4 py-2.5 hover:bg-orange-pale transition"
-                data-testid="btn-registrar-saida">
+            <button data-open-modal="saida" class="inline-flex items-center gap-2 rounded-xl bg-white border border-orange-deep text-orange-deep font-semibold px-4 py-2.5 hover:bg-orange-pale" data-testid="btn-registrar-saida">
                 <i data-lucide="arrow-up-from-line" class="icon"></i> Registrar saída
             </button>
-            <a href="{% url 'medicamento_novo' %}"
-                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card transition"
-                data-testid="btn-novo-medicamento">
+            <a href="{% url 'medicamento_novo' %}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card" data-testid="btn-novo-medicamento">
                 <i data-lucide="plus" class="icon"></i> Novo medicamento
             </a>
+            {% endif %}
         </div>
     </div>
 
-    {# ---------- KPIs ---------- #}
+    {# KPIs com tooltips #}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         {% with k=kpis %}
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
+        <div class="tt rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card" data-testid="kpi-medicamentos-box">
             <div class="flex items-center gap-2 text-neutrals-600 text-xs uppercase tracking-wider"><i data-lucide="pill" class="icon"></i> Medicamentos</div>
             <div class="font-display text-3xl font-bold mt-1" data-testid="kpi-medicamentos">{{ k.medicamentos }}</div>
+            <div class="tt-body">Total de medicamentos cadastrados</div>
         </div>
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
+        <div class="tt rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
             <div class="flex items-center gap-2 text-neutrals-600 text-xs uppercase tracking-wider"><i data-lucide="package" class="icon"></i> Lotes</div>
             <div class="font-display text-3xl font-bold mt-1" data-testid="kpi-lotes">{{ k.lotes }}</div>
+            <div class="tt-body">Total de lotes ativos (todos os medicamentos)</div>
         </div>
-        <div class="rounded-2xl bg-white border border-yellow-warn/40 p-4 shadow-card">
+        <div class="tt rounded-2xl bg-white border border-yellow-warn/40 p-4 shadow-card">
             <div class="flex items-center gap-2 text-orange-deep text-xs uppercase tracking-wider"><i data-lucide="alert-triangle" class="icon"></i> Baixo</div>
             <div class="font-display text-3xl font-bold text-orange-deep mt-1" data-testid="kpi-baixo">{{ k.baixo }}</div>
+            <div class="tt-body">Lotes com estoque entre {{ CONFIG.estoque_muito_baixo|add:1 }} e {{ CONFIG.estoque_baixo }} unidades</div>
         </div>
-        <div class="rounded-2xl bg-white border border-samu-soft/60 p-4 shadow-card">
+        <div class="tt rounded-2xl bg-white border border-samu-soft/60 p-4 shadow-card">
             <div class="flex items-center gap-2 text-samu-dark text-xs uppercase tracking-wider"><i data-lucide="alert-octagon" class="icon"></i> Muito baixo</div>
             <div class="font-display text-3xl font-bold text-samu-dark mt-1" data-testid="kpi-muito-baixo">{{ k.muito_baixo }}</div>
+            <div class="tt-body">Lotes com até {{ CONFIG.estoque_muito_baixo }} unidades</div>
         </div>
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
+        <div class="tt rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
             <div class="flex items-center gap-2 text-neutrals-600 text-xs uppercase tracking-wider"><i data-lucide="calendar-clock" class="icon"></i> Validade</div>
             <div class="font-display text-3xl font-bold mt-1" data-testid="kpi-vencendo">{{ k.vencendo }}</div>
+            <div class="tt-body">Lotes vencidos ou vencendo em até {{ CONFIG.validade_muito_proximo }} dias</div>
         </div>
         {% endwith %}
     </div>
 
-    {# ---------- Barra de pesquisa + filtros ---------- #}
-    <form method="get" class="rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
-        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto_auto] gap-3">
-            <div class="relative">
-                <i data-lucide="search" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
-                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome, lote ou complemento..."
-                    autocomplete="off"
-                    class="w-full rounded-xl border border-neutrals-200 pl-10 pr-4 py-3 text-sm focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream transition"
-                    id="busca-medicamento" data-testid="busca-medicamento-input">
-                <div id="busca-sugestoes"
-                    class="autocomplete-list hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-neutrals-200 rounded-xl shadow-card"></div>
+    {# Busca + filtros combináveis #}
+    <form method="get" class="rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card space-y-3" id="form-filtros">
+        <div class="relative">
+            <i data-lucide="search" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
+            <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome, metragem, lote ou complemento..." autocomplete="off"
+                class="w-full rounded-xl border border-neutrals-200 pl-10 pr-4 py-3 text-sm focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream"
+                id="busca-medicamento" data-testid="busca-medicamento-input">
+            <div id="busca-sugestoes" class="autocomplete-list hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-neutrals-200 rounded-xl shadow-card"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <div class="text-[10px] uppercase tracking-wider text-neutrals-600 font-semibold mb-2">Tipo</div>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for t in tipos %}
+                    <label class="pill-chk" data-testid="chip-tipo-{{ t.id }}"><input type="checkbox" name="tipo" value="{{ t.id }}" {% if t.id|stringformat:"s" in filtro_tipos %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">{{ t.nome }}</label>
+                    {% endfor %}
+                </div>
             </div>
-            <select name="tipo" class="rounded-xl border border-neutrals-200 px-3 py-3 text-sm bg-white" data-testid="filtro-tipo">
-                <option value="">Todos os tipos</option>
-                {% for t in tipos %}<option value="{{ t.id }}" {% if filtro_tipo|stringformat:"s" == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>{% endfor %}
+            <div>
+                <div class="text-[10px] uppercase tracking-wider text-neutrals-600 font-semibold mb-2">Forma</div>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for f in formas %}
+                    <label class="pill-chk"><input type="checkbox" name="forma" value="{{ f.id }}" {% if f.id|stringformat:"s" in filtro_formas %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">{{ f.nome }}</label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <div class="text-[10px] uppercase tracking-wider text-neutrals-600 font-semibold mb-2">Nível de estoque</div>
+                <div class="flex flex-wrap gap-1.5">
+                    <label class="pill-chk"><input type="checkbox" name="nivel" value="MUITO_BAIXO" {% if 'MUITO_BAIXO' in filtro_niveis %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Muito baixo</label>
+                    <label class="pill-chk"><input type="checkbox" name="nivel" value="BAIXO" {% if 'BAIXO' in filtro_niveis %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Baixo</label>
+                    <label class="pill-chk"><input type="checkbox" name="nivel" value="NORMAL" {% if 'NORMAL' in filtro_niveis %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Normal</label>
+                    <label class="pill-chk"><input type="checkbox" name="nivel" value="ALTO" {% if 'ALTO' in filtro_niveis %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Alto</label>
+                </div>
+            </div>
+            <div>
+                <div class="text-[10px] uppercase tracking-wider text-neutrals-600 font-semibold mb-2">Validade</div>
+                <div class="flex flex-wrap gap-1.5">
+                    <label class="pill-chk"><input type="checkbox" name="validade" value="VENCIDO" {% if 'VENCIDO' in filtro_validades %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Vencido</label>
+                    <label class="pill-chk"><input type="checkbox" name="validade" value="MUITO_PROXIMO" {% if 'MUITO_PROXIMO' in filtro_validades %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Muito próximo</label>
+                    <label class="pill-chk"><input type="checkbox" name="validade" value="PROXIMO" {% if 'PROXIMO' in filtro_validades %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Próximo</label>
+                    <label class="pill-chk"><input type="checkbox" name="validade" value="CONTROLADO" {% if 'CONTROLADO' in filtro_validades %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Controlado</label>
+                    <label class="pill-chk"><input type="checkbox" name="validade" value="DISTANTE" {% if 'DISTANTE' in filtro_validades %}checked{% endif %} onchange="document.getElementById('form-filtros').submit()">Distante</label>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="text-[10px] uppercase tracking-wider text-neutrals-600 font-semibold mb-2">Lotes</div>
+            <select name="lote" multiple size="3" class="w-full rounded-xl border border-neutrals-200 px-3 py-2 text-xs bg-white font-mono" onchange="document.getElementById('form-filtros').submit()" data-testid="filtro-lote">
+                {% for l in todos_lotes_opts %}<option value="{{ l.id }}" {% if l.id|stringformat:"s" in filtro_lotes %}selected{% endif %}>{{ l.codigo }} — {{ l.medicamento.nome_exibicao }}</option>{% endfor %}
             </select>
-            <select name="forma" class="rounded-xl border border-neutrals-200 px-3 py-3 text-sm bg-white" data-testid="filtro-forma">
-                <option value="">Todas as formas</option>
-                {% for f in formas %}<option value="{{ f.id }}" {% if filtro_forma|stringformat:"s" == f.id|stringformat:"s" %}selected{% endif %}>{{ f.nome }}</option>{% endfor %}
-            </select>
-            <select name="nivel" class="rounded-xl border border-neutrals-200 px-3 py-3 text-sm bg-white" data-testid="filtro-nivel">
-                <option value="">Todos os níveis</option>
-                <option value="NORMAL" {% if filtro_nivel == 'NORMAL' %}selected{% endif %}>Normal</option>
-                <option value="BAIXO" {% if filtro_nivel == 'BAIXO' %}selected{% endif %}>Baixo</option>
-                <option value="MUITO_BAIXO" {% if filtro_nivel == 'MUITO_BAIXO' %}selected{% endif %}>Muito baixo</option>
-            </select>
-            <button type="submit" class="rounded-xl bg-neutrals-900 text-white px-4 py-3 text-sm font-semibold hover:bg-neutrals-800 transition" data-testid="btn-filtrar">
-                Filtrar
-            </button>
+        </div>
+        <div class="flex items-center justify-between text-xs text-neutrals-600">
+            <span>Filtros combináveis — selecione quantos quiser.</span>
+            <a href="{% url 'medicamentos_lista' %}" class="text-samu font-semibold hover:underline">Limpar filtros</a>
         </div>
     </form>
 
-    {# ---------- Tabela ---------- #}
+    {# Tabela agrupada por nome com setinha #}
     <div class="rounded-2xl bg-white border border-neutrals-200 overflow-hidden shadow-card">
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="text-[11px] uppercase tracking-wider text-neutrals-600 bg-neutrals-50 border-b border-neutrals-200">
                     <tr>
-                        <th class="text-left px-6 py-3">Medicamento</th>
-                        <th class="text-left px-4 py-3">Lote</th>
-                        <th class="text-left px-4 py-3">Categoria</th>
+                        {% if pode_mostrar_setinha %}<th class="w-10 px-2 py-3"></th>{% endif %}
+                        <th class="text-left px-4 py-3">Medicamento</th>
+                        <th class="text-left px-4 py-3">Metragem</th>
+                        <th class="text-left px-4 py-3">Tipo</th>
                         <th class="text-left px-4 py-3">Forma</th>
-                        <th class="text-center px-4 py-3">Qtd.</th>
-                        <th class="text-left px-4 py-3">Validade</th>
-                        <th class="text-left px-4 py-3">Estoque</th>
-                        <th class="text-right px-6 py-3">Ações</th>
+                        <th class="text-center px-4 py-3">Lotes</th>
+                        <th class="text-center px-4 py-3">Qtd. total</th>
+                        <th class="text-left px-4 py-3">Status principal</th>
+                        {% if pode_editar %}<th class="text-right px-4 py-3">Ações</th>{% endif %}
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-neutrals-200">
-                    {% for lote in lotes %}
-                    <tr class="table-row" data-testid="linha-lote-{{ lote.id }}">
-                        <td class="px-6 py-4">
-                            <div class="font-semibold text-neutrals-900">{{ lote.medicamento.nome }}</div>
-                            {% if lote.medicamento.complemento %}<div class="text-xs text-neutrals-600 mt-0.5">{{ lote.medicamento.complemento }}</div>{% endif %}
-                        </td>
-                        <td class="px-4 py-4 font-mono text-xs text-neutrals-800">{{ lote.codigo }}</td>
-                        <td class="px-4 py-4"><span class="badge bg-neutrals-100 text-neutrals-800">{{ lote.medicamento.tipo.nome }}</span></td>
-                        <td class="px-4 py-4 text-neutrals-800">{{ lote.medicamento.forma.nome }}</td>
-                        <td class="px-4 py-4 text-center font-display font-bold text-neutrals-900">{{ lote.quantidade }}</td>
-                        <td class="px-4 py-4">
-                            {% if lote.vencido %}
-                                <span class="badge bg-samu-cream text-samu-dark">Vencido · {{ lote.validade|date:"d/m/Y" }}</span>
-                            {% elif lote.proximo_vencimento %}
-                                <span class="badge bg-orange-pale text-orange-deep">{{ lote.dias_para_validade }}d · {{ lote.validade|date:"d/m/Y" }}</span>
+                <tbody class="divide-y divide-neutrals-200" id="tbody-medicamentos">
+                    {% for linha in linhas %}
+                    {% with med=linha.principal %}
+                    <tr class="table-row linha-med" data-med-id="{{ med.id }}" data-testid="linha-med-{{ med.id }}">
+                        {% if pode_mostrar_setinha %}
+                        <td class="px-2 py-4 text-center">
+                            {% if linha.total_variantes > 0 %}
+                            <button type="button" class="seta-rot p-1.5 rounded-lg hover:bg-neutrals-100" data-toggle-variantes="{{ med.id }}" data-testid="toggle-variantes-{{ med.id }}" title="Ver variantes do mesmo nome">
+                                <i data-lucide="chevron-right" class="icon"></i>
+                            </button>
                             {% else %}
-                                <span class="text-neutrals-800">{{ lote.validade|date:"d/m/Y" }}</span>
+                            <button type="button" class="seta-rot p-1.5 rounded-lg hover:bg-neutrals-100" data-toggle-lotes="{{ med.id }}" data-testid="toggle-lotes-{{ med.id }}" title="Ver lotes">
+                                <i data-lucide="chevron-right" class="icon text-neutrals-600"></i>
+                            </button>
                             {% endif %}
                         </td>
+                        {% endif %}
                         <td class="px-4 py-4">
-                            {% if lote.nivel_estoque == 'NORMAL' %}
-                                <span class="badge bg-greens-pale text-greens-good">● Normal</span>
-                            {% elif lote.nivel_estoque == 'BAIXO' %}
-                                <span class="badge bg-orange-pale text-orange-deep">● Baixo</span>
-                            {% else %}
-                                <span class="badge bg-samu-cream text-samu-dark">● Muito baixo</span>
-                            {% endif %}
+                            <div class="font-semibold text-neutrals-900">{{ med.nome }}</div>
+                            {% if med.complemento %}<div class="text-xs text-neutrals-600 mt-0.5">{{ med.complemento }}</div>{% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4 font-mono text-xs">{{ med.metragem|default:"—" }}</td>
+                        <td class="px-4 py-4"><span class="badge bg-neutrals-100 text-neutrals-800">{{ med.tipo.nome }}</span></td>
+                        <td class="px-4 py-4 text-neutrals-800">{{ med.forma.nome }}</td>
+                        <td class="px-4 py-4 text-center">{{ med.total_lotes }}</td>
+                        <td class="px-4 py-4 text-center font-display font-bold">{{ med.quantidade_total }}</td>
+                        <td class="px-4 py-4">
+                            {% with lote=med.lotes_filtrados.0 %}
+                            {% if lote %}
+                              {% if lote.nivel_estoque == 'NORMAL' %}<span class="badge bg-greens-pale text-greens-good">● Normal</span>
+                              {% elif lote.nivel_estoque == 'BAIXO' %}<span class="badge bg-orange-pale text-orange-deep">● Baixo</span>
+                              {% elif lote.nivel_estoque == 'ALTO' %}<span class="badge bg-greens-pale text-greens-good">● Alto</span>
+                              {% else %}<span class="badge bg-samu-cream text-samu-dark">● Muito baixo</span>{% endif %}
+                              {% if lote.mostra_dias_restantes and CONFIG.validade_configurada %}
+                                <div class="text-[11px] text-neutrals-600 mt-1">
+                                {% if lote.vencido %}<span class="text-samu-dark font-semibold">{{ lote.dias_para_validade }}d</span> · venceu {{ lote.validade|date:"d/m/Y" }}{% else %}{{ lote.dias_para_validade }}d restantes{% endif %}
+                                </div>
+                              {% endif %}
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                        {% if pode_editar %}
+                        <td class="px-4 py-4">
                             <div class="flex items-center justify-end gap-1">
-                                <a href="{% url 'lote_editar' lote.id %}" title="Editar lote"
-                                    class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream transition"
-                                    data-testid="btn-editar-lote-{{ lote.id }}">
-                                    <i data-lucide="pencil" class="icon"></i>
-                                </a>
-                                <button type="button"
-                                    data-delete-lote='{"id": {{ lote.id }}, "medId": {{ lote.medicamento.id }}, "medNome": "{{ lote.medicamento.nome|escapejs }}", "totalLotes": {{ lote.medicamento.total_lotes }}, "loteCodigo": "{{ lote.codigo|escapejs }}"}'
-                                    class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream transition"
-                                    title="Excluir" data-testid="btn-excluir-lote-{{ lote.id }}">
-                                    <i data-lucide="trash-2" class="icon"></i>
-                                </button>
+                                <a href="{% url 'medicamento_editar' med.id %}" title="Editar" class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" data-testid="btn-editar-med-{{ med.id }}"><i data-lucide="pencil" class="icon"></i></a>
+                                {% if pode_deletar %}
+                                <button type="button" data-delete='{"id": {{ med.id }}, "nome": "{{ med.nome_exibicao|escapejs }}", "lotes": {{ med.total_lotes }}}' class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" title="Excluir" data-testid="btn-excluir-med-{{ med.id }}"><i data-lucide="trash-2" class="icon"></i></button>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {# Linha expansível: variantes do mesmo nome (se houver) + lotes #}
+                    <tr class="hidden detalhe-row" id="detalhe-{{ med.id }}">
+                        <td colspan="9" class="bg-neutrals-50 p-0">
+                            <div class="scroll-open p-5 space-y-4">
+                                {% if linha.total_variantes > 0 %}
+                                <div>
+                                    <div class="text-[11px] uppercase tracking-widest text-samu font-semibold mb-2">Variantes com o mesmo nome</div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {% for v in linha.variantes %}
+                                        <div class="bg-white border border-neutrals-200 rounded-xl p-3 flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-lg bg-samu-cream text-samu-dark flex items-center justify-center"><i data-lucide="pill" class="icon"></i></div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="font-semibold text-sm">{{ v.nome }} {{ v.metragem }}</div>
+                                                <div class="text-xs text-neutrals-600">{{ v.tipo.nome }} · {{ v.forma.nome }} · {{ v.total_lotes }} lote(s) · {{ v.quantidade_total }} un</div>
+                                            </div>
+                                            {% if pode_editar %}<a href="{% url 'medicamento_editar' v.id %}" class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="pencil" class="icon"></i></a>{% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="text-[11px] uppercase tracking-widest text-neutrals-600 font-semibold mb-2">Lotes</div>
+                                    <div class="divide-y divide-neutrals-200 bg-white rounded-xl border border-neutrals-200">
+                                        {% for l in med.lotes_filtrados %}
+                                        <div class="flex items-center gap-3 p-3">
+                                            <div class="font-mono text-xs text-neutrals-800 w-24">{{ l.codigo }}</div>
+                                            <div class="flex-1 text-sm">{{ l.quantidade }} un ·
+                                                {% if l.vencido %}<span class="text-samu-dark font-semibold">{{ l.dias_para_validade }}d · venceu {{ l.validade|date:"d/m/Y" }}</span>
+                                                {% elif l.mostra_dias_restantes %}<span class="text-orange-deep">{{ l.dias_para_validade }}d · {{ l.validade|date:"d/m/Y" }}</span>
+                                                {% else %}{{ l.validade|date:"d/m/Y" }}{% endif %}
+                                            </div>
+                                            {% if l.nivel_estoque == 'MUITO_BAIXO' %}<span class="badge bg-samu-cream text-samu-dark">Muito baixo</span>
+                                            {% elif l.nivel_estoque == 'BAIXO' %}<span class="badge bg-orange-pale text-orange-deep">Baixo</span>
+                                            {% elif l.nivel_estoque == 'ALTO' %}<span class="badge bg-greens-pale text-greens-good">Alto</span>
+                                            {% else %}<span class="badge bg-greens-pale text-greens-good">Normal</span>{% endif %}
+                                            {% if pode_editar %}<a href="{% url 'lote_editar' l.id %}" class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="pencil" class="icon"></i></a>{% endif %}
+                                        </div>
+                                        {% empty %}<div class="p-4 text-sm text-neutrals-600">Nenhum lote.</div>{% endfor %}
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>
+                    {% endwith %}
                     {% empty %}
-                    <tr><td colspan="8" class="px-6 py-16 text-center text-neutrals-600">
+                    <tr><td colspan="9" class="px-6 py-16 text-center text-neutrals-600">
                         <i data-lucide="package-open" class="icon-lg mx-auto text-neutrals-300 mb-2"></i>
-                        <div>Nenhum lote encontrado com os filtros aplicados.</div>
-                        <a href="{% url 'medicamento_novo' %}" class="inline-block mt-3 text-samu font-semibold hover:underline">Cadastrar um medicamento →</a>
+                        <div>Nenhum medicamento encontrado com os filtros aplicados.</div>
                     </td></tr>
                     {% endfor %}
                 </tbody>
@@ -162,18 +241,13 @@
     </div>
 </div>
 
-{# ---------- Modal Movimentação ---------- #}
+{# Modal Movimentação #}
 <div id="modal-movimentacao" class="hidden fixed inset-0 z-50 bg-neutrals-900/60 backdrop-blur-sm items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden anim-in">
         <div class="px-6 py-4 border-b border-neutrals-200 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div id="modal-icon" class="w-10 h-10 rounded-xl bg-greens-pale text-greens-good flex items-center justify-center">
-                    <i data-lucide="arrow-down-to-line" class="icon-lg"></i>
-                </div>
-                <div>
-                    <div class="font-display text-lg font-bold" id="modal-title">Registrar entrada</div>
-                    <div class="text-xs text-neutrals-600" id="modal-subtitle">Adiciona unidades ao estoque</div>
-                </div>
+                <div id="modal-icon" class="w-10 h-10 rounded-xl bg-greens-pale text-greens-good flex items-center justify-center"><i data-lucide="arrow-down-to-line" class="icon-lg"></i></div>
+                <div><div class="font-display text-lg font-bold" id="modal-title">Registrar entrada</div><div class="text-xs text-neutrals-600" id="modal-subtitle">Adiciona unidades ao estoque</div></div>
             </div>
             <button type="button" data-close-modal class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="x" class="icon"></i></button>
         </div>
@@ -183,14 +257,17 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label class="block relative md:col-span-2">
                     <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Medicamento (obrigatório)</span>
-                    <div class="mt-1.5 relative">
-                        <i data-lucide="pill" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
-                        <input name="medicamento_query" id="mov-medicamento" required autocomplete="off"
-                            placeholder="Digite o nome ou ID"
-                            class="w-full rounded-xl border border-neutrals-200 pl-10 pr-4 py-3 text-sm focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream"
-                            data-testid="mov-medicamento-input">
+                    <div class="mt-1.5 relative"><i data-lucide="pill" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
+                        <input name="medicamento_query" id="mov-medicamento" required autocomplete="off" placeholder="Digite o nome do medicamento"
+                            class="w-full rounded-xl border border-neutrals-200 pl-10 pr-4 py-3 text-sm focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream" data-testid="mov-medicamento-input">
                     </div>
                     <div id="mov-sugestoes" class="autocomplete-list hidden absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-neutrals-200 rounded-xl shadow-card"></div>
+                </label>
+                <label class="block relative md:col-span-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Lote (obrigatório)</span>
+                    <input name="lote_codigo" id="mov-lote" required autocomplete="off" placeholder="Ex.: L2025-123A — sugestões aparecem ao digitar"
+                        class="mt-1.5 w-full rounded-xl border border-neutrals-200 px-4 py-3 text-sm font-mono focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream" data-testid="mov-lote-input">
+                    <div id="mov-lote-sugestoes" class="autocomplete-list hidden absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-neutrals-200 rounded-xl shadow-card"></div>
                 </label>
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Quantidade</span>
@@ -198,51 +275,41 @@
                 </label>
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Origem / destino <span class="text-neutrals-600 normal-case font-normal">(opcional)</span></span>
-                    {{ form_mov.origem }}
+                    {{ form_mov.origem_destino }}
                 </label>
                 <label class="block">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Tipo <span class="text-neutrals-600 normal-case font-normal">(desambiguação)</span></span>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Tipo</span>
                     {{ form_mov.tipo_medicamento }}
                 </label>
                 <label class="block">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Forma <span class="text-neutrals-600 normal-case font-normal">(desambiguação)</span></span>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Forma</span>
                     {{ form_mov.forma_medicamento }}
                 </label>
             </div>
             <div class="flex items-center justify-end gap-2 pt-2">
                 <button type="button" data-close-modal class="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutrals-600 hover:bg-neutrals-100">Cancelar</button>
-                <button type="submit" id="modal-submit"
-                    class="rounded-xl bg-gradient-to-br from-greens-good to-greens-good/80 text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card"
-                    data-testid="mov-submit">
-                    Confirmar entrada
-                </button>
+                <button type="submit" id="modal-submit" class="rounded-xl bg-gradient-to-br from-greens-good to-greens-good/80 text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="mov-submit">Confirmar entrada</button>
             </div>
         </form>
     </div>
 </div>
 
-{# ---------- Modal Excluir ---------- #}
+{# Modal Excluir #}
 <div id="modal-excluir" class="hidden fixed inset-0 z-50 bg-neutrals-900/60 backdrop-blur-sm items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden anim-in">
         <div class="p-6">
-            <div class="w-12 h-12 rounded-xl bg-samu-cream text-samu-dark flex items-center justify-center mb-3">
-                <i data-lucide="trash-2" class="icon-lg"></i>
-            </div>
-            <div class="font-display text-lg font-bold" id="excluir-titulo">Excluir lote</div>
+            <div class="w-12 h-12 rounded-xl bg-samu-cream text-samu-dark flex items-center justify-center mb-3"><i data-lucide="trash-2" class="icon-lg"></i></div>
+            <div class="font-display text-lg font-bold" id="excluir-titulo">Excluir</div>
             <div class="text-sm text-neutrals-600 mt-1" id="excluir-mensagem"></div>
             <form method="post" id="form-excluir" class="mt-5 space-y-3">
                 {% csrf_token %}
                 <div id="excluir-quantos-wrap" class="hidden">
                     <label class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Quantos lotes remover?</label>
-                    <input type="number" name="quantos_lotes" id="excluir-quantos" min="1" value="1"
-                        class="mt-1.5 w-full rounded-xl border border-neutrals-200 px-4 py-3 text-sm">
-                    <div class="text-xs text-neutrals-600 mt-1">Os lotes com validade mais próxima serão removidos primeiro.</div>
+                    <input type="number" name="quantos_lotes" id="excluir-quantos" min="1" value="1" class="mt-1.5 w-full rounded-xl border border-neutrals-200 px-4 py-3 text-sm">
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <button type="button" data-close-modal class="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutrals-600 hover:bg-neutrals-100">Cancelar</button>
-                    <button type="submit" class="rounded-xl bg-samu text-white px-5 py-2.5 text-sm font-semibold hover:bg-samu-dark shadow-card" data-testid="excluir-confirm">
-                        Confirmar exclusão
-                    </button>
+                    <button type="submit" class="rounded-xl bg-samu text-white px-5 py-2.5 text-sm font-semibold hover:bg-samu-dark shadow-card" data-testid="excluir-confirm">Confirmar</button>
                 </div>
             </form>
         </div>
@@ -266,7 +333,7 @@
         tipoInput.value = tipo === 'saida' ? 'SAIDA' : 'ENTRADA';
         if (tipo === 'saida') {
             modalTitle.textContent = 'Registrar saída';
-            modalSubtitle.textContent = 'Subtrai unidades do estoque (FEFO)';
+            modalSubtitle.textContent = 'Subtrai unidades do estoque';
             modalIcon.className = 'w-10 h-10 rounded-xl bg-orange-pale text-orange-deep flex items-center justify-center';
             modalIcon.innerHTML = '<i data-lucide="arrow-up-from-line" class="icon-lg"></i>';
             modalSubmit.className = 'rounded-xl bg-gradient-to-br from-orange-deep to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card';
@@ -280,91 +347,87 @@
             modalSubmit.textContent = 'Confirmar entrada';
         }
         window.lucide && window.lucide.createIcons();
-        modalMov.classList.remove('hidden');
-        modalMov.classList.add('flex');
+        modalMov.classList.remove('hidden'); modalMov.classList.add('flex');
     }
 
-    document.querySelectorAll('[data-open-modal]').forEach(btn => {
-        btn.addEventListener('click', () => abrirMov(btn.dataset.openModal));
-    });
-    document.querySelectorAll('[data-close-modal]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            modalMov.classList.add('hidden'); modalMov.classList.remove('flex');
-            modalExc.classList.add('hidden'); modalExc.classList.remove('flex');
-        });
+    document.querySelectorAll('[data-open-modal]').forEach(btn => btn.addEventListener('click', () => abrirMov(btn.dataset.openModal)));
+    document.querySelectorAll('[data-close-modal]').forEach(btn => btn.addEventListener('click', () => {
+        modalMov.classList.add('hidden'); modalMov.classList.remove('flex');
+        modalExc.classList.add('hidden'); modalExc.classList.remove('flex');
+    }));
+
+    // Setinha de expansão
+    function toggleDetalhe(medId) {
+        const row = document.getElementById('detalhe-' + medId);
+        const btn = document.querySelector(`[data-toggle-variantes="${medId}"], [data-toggle-lotes="${medId}"]`);
+        if (!row) return;
+        if (row.classList.contains('hidden')) {
+            row.classList.remove('hidden');
+            btn && btn.classList.add('open');
+        } else {
+            row.classList.add('hidden');
+            btn && btn.classList.remove('open');
+        }
+    }
+    document.querySelectorAll('[data-toggle-variantes], [data-toggle-lotes]').forEach(btn => {
+        btn.addEventListener('click', () => toggleDetalhe(btn.dataset.toggleVariantes || btn.dataset.toggleLotes));
     });
 
-    // ------- Autocomplete busca principal -------
-    async function autocomplete(inputEl, listEl, onPick) {
-        let debounce;
+    // Autocomplete
+    async function autocomplete(inputEl, listEl, urlFn, onPick) {
+        if (!inputEl) return;
+        let deb;
         inputEl.addEventListener('input', () => {
-            clearTimeout(debounce);
+            clearTimeout(deb);
             const q = inputEl.value.trim();
             if (!q) { listEl.classList.add('hidden'); return; }
-            debounce = setTimeout(async () => {
-                const resp = await fetch("{% url 'api_busca_medicamentos' %}?q=" + encodeURIComponent(q));
+            deb = setTimeout(async () => {
+                const resp = await fetch(urlFn(q));
                 const data = await resp.json();
                 if (!data.resultados.length) { listEl.classList.add('hidden'); return; }
                 listEl.innerHTML = data.resultados.map(r => `
-                    <button type="button" data-id="${r.id}" data-nome="${r.nome.replace(/"/g,'&quot;')}"
-                        class="autocomplete-item w-full text-left px-4 py-2.5 hover:bg-neutrals-50 flex items-center gap-3 border-b border-neutrals-100 last:border-0">
-                        <div class="w-8 h-8 rounded-lg bg-samu-cream text-samu-dark flex items-center justify-center"><i data-lucide="pill" class="icon"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-semibold text-neutrals-900 truncate">${r.nome}</div>
-                            <div class="text-xs text-neutrals-600 truncate">${r.tipo} · ${r.forma}${r.complemento ? ' · ' + r.complemento : ''}</div>
-                        </div>
-                        <div class="text-xs font-mono text-neutrals-600">${r.quantidade_total} un</div>
-                    </button>
-                `).join('');
+                    <button type="button" data-r='${JSON.stringify(r).replace(/'/g, "&apos;")}' class="autocomplete-item w-full text-left px-4 py-2.5 hover:bg-neutrals-50 border-b border-neutrals-100 last:border-0">
+                        <div class="text-sm font-semibold">${r.nome || r.codigo || r.nome_exibicao}</div>
+                        <div class="text-xs text-neutrals-600">${r.tipo || r.medicamento || ''} ${r.forma || ''} ${r.quantidade !== undefined ? '· ' + r.quantidade + ' un' : ''} ${r.quantidade_total !== undefined ? '· ' + r.quantidade_total + ' un' : ''}</div>
+                    </button>`).join('');
                 listEl.classList.remove('hidden');
-                window.lucide && window.lucide.createIcons();
-                listEl.querySelectorAll('.autocomplete-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        onPick(item.dataset);
-                        listEl.classList.add('hidden');
-                    });
-                });
+                listEl.querySelectorAll('.autocomplete-item').forEach(item => item.addEventListener('click', () => { onPick(JSON.parse(item.dataset.r.replace(/&apos;/g, "'"))); listEl.classList.add('hidden'); }));
             }, 180);
         });
-        document.addEventListener('click', (e) => {
-            if (!listEl.contains(e.target) && e.target !== inputEl) listEl.classList.add('hidden');
-        });
+        document.addEventListener('click', e => { if (!listEl.contains(e.target) && e.target !== inputEl) listEl.classList.add('hidden'); });
     }
-    autocomplete(
-        document.getElementById('busca-medicamento'),
-        document.getElementById('busca-sugestoes'),
-        (data) => { window.location.href = "?q=" + encodeURIComponent(data.nome); }
-    );
-    autocomplete(
-        document.getElementById('mov-medicamento'),
-        document.getElementById('mov-sugestoes'),
-        (data) => { document.getElementById('mov-medicamento').value = data.nome; }
-    );
 
-    // ------- Excluir -------
-    document.querySelectorAll('[data-delete-lote]').forEach(btn => {
+    autocomplete(document.getElementById('busca-medicamento'), document.getElementById('busca-sugestoes'),
+        q => "{% url 'api_busca_medicamentos' %}?q=" + encodeURIComponent(q),
+        r => { window.location.href = "?q=" + encodeURIComponent(r.nome); });
+    autocomplete(document.getElementById('mov-medicamento'), document.getElementById('mov-sugestoes'),
+        q => "{% url 'api_busca_medicamentos' %}?q=" + encodeURIComponent(q),
+        r => { document.getElementById('mov-medicamento').value = r.nome; });
+    autocomplete(document.getElementById('mov-lote'), document.getElementById('mov-lote-sugestoes'),
+        q => "{% url 'api_busca_lotes' %}?q=" + encodeURIComponent(q) + "&medicamento=" + encodeURIComponent(document.getElementById('mov-medicamento').value),
+        r => { document.getElementById('mov-lote').value = r.codigo; });
+
+    // Excluir
+    document.querySelectorAll('[data-delete]').forEach(btn => {
         btn.addEventListener('click', () => {
-            const info = JSON.parse(btn.dataset.deleteLote);
+            const info = JSON.parse(btn.dataset.delete);
             const form = document.getElementById('form-excluir');
             const wrap = document.getElementById('excluir-quantos-wrap');
             const msg = document.getElementById('excluir-mensagem');
             const titulo = document.getElementById('excluir-titulo');
-            if (info.totalLotes <= 1) {
+            if (info.lotes <= 1) {
                 titulo.textContent = 'Excluir medicamento';
-                msg.textContent = `Este é o único lote de "${info.medNome}". Ao confirmar, o medicamento será totalmente removido do estoque.`;
+                msg.textContent = `"${info.nome}" tem apenas 1 lote. Será removido completamente.`;
                 wrap.classList.add('hidden');
-                form.action = `/api/medicamentos/${info.medId}/excluir/`;
             } else {
-                titulo.textContent = 'Excluir lote(s)';
-                msg.textContent = `"${info.medNome}" possui ${info.totalLotes} lotes. Quantos deseja remover? Os de validade mais próxima serão excluídos primeiro.`;
+                titulo.textContent = 'Excluir lotes';
+                msg.textContent = `"${info.nome}" possui ${info.lotes} lotes. Quantos remover? Os de validade mais próxima serão apagados primeiro.`;
                 wrap.classList.remove('hidden');
                 const input = document.getElementById('excluir-quantos');
-                input.max = info.totalLotes;
-                input.value = 1;
-                form.action = `/api/medicamentos/${info.medId}/excluir/`;
+                input.max = info.lotes; input.value = 1;
             }
-            modalExc.classList.remove('hidden');
-            modalExc.classList.add('flex');
+            form.action = `/api/medicamentos/${info.id}/excluir/`;
+            modalExc.classList.remove('hidden'); modalExc.classList.add('flex');
             window.lucide && window.lucide.createIcons();
         });
     });

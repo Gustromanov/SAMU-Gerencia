@@ -5,89 +5,81 @@
 <div class="max-w-3xl mx-auto space-y-6">
     <div class="flex items-center gap-3">
         <a href="{% url 'medicamentos_lista' %}" class="p-2 rounded-lg hover:bg-neutrals-100"><i data-lucide="arrow-left" class="icon-lg"></i></a>
-        <div>
-            <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Cadastro</div>
-            <h1 class="font-display text-3xl font-bold">{% if medicamento %}Editar medicamento{% else %}Novo medicamento{% endif %}</h1>
-        </div>
+        <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Cadastro</div><h1 class="font-display text-3xl font-bold">{% if medicamento %}Editar medicamento{% else %}Novo medicamento{% endif %}</h1></div>
     </div>
 
     <form method="post" class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-5">
         {% csrf_token %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label class="block md:col-span-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Nome</span>
-                {{ form.nome }}
-                {% if form.nome.errors %}<div class="text-xs text-samu mt-1">{{ form.nome.errors|join:" " }}</div>{% endif %}
-            </label>
-            <label class="block">
-                <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Tipo</span>
-                {{ form.tipo }}
-            </label>
-            <label class="block">
-                <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Forma farmacêutica</span>
-                {{ form.forma }}
-            </label>
-            <label class="block md:col-span-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Complemento (opcional)</span>
-                {{ form.complemento }}
-                <div class="text-[11px] text-neutrals-600 mt-1">Aparece abaixo do nome na tela de lista.</div>
-            </label>
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Nome</span>{{ form.nome }}{% if form.nome.errors %}<div class="text-xs text-samu mt-1">{{ form.nome.errors|join:" " }}</div>{% endif %}</label>
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Metragem <span class="text-neutrals-600 normal-case font-normal">(ml, mg, mcg, %, etc.)</span></span>{{ form.metragem }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Tipo</span>{{ form.tipo }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Forma farmacêutica</span>{{ form.forma }}</label>
+            <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Complemento (opcional)</span>{{ form.complemento }}<div class="text-[11px] text-neutrals-600 mt-1">Aparece abaixo do nome na tela de lista.</div></label>
         </div>
 
         {% if lote_form %}
         <div class="border-t border-neutrals-200 pt-5">
             <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold mb-2">Primeiro lote</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label class="block">
+                <label class="block relative">
                     <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Código do lote</span>
                     {{ lote_form.codigo }}
+                    <div id="lote-sug" class="autocomplete-list hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-neutrals-200 rounded-xl shadow-card"></div>
                 </label>
-                <label class="block">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Validade</span>
-                    {{ lote_form.validade }}
-                </label>
-                <label class="block">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Quantidade inicial</span>
-                    {{ lote_form.quantidade }}
-                </label>
-                <label class="block">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Situação</span>
-                    {{ lote_form.situacao }}
-                </label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Validade</span>{{ lote_form.validade }}</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Quantidade inicial</span>{{ lote_form.quantidade }}</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Situação</span>{{ lote_form.situacao }}</label>
             </div>
         </div>
         {% endif %}
 
         <div class="flex items-center justify-end gap-2 pt-2">
             <a href="{% url 'medicamentos_lista' %}" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutrals-600 hover:bg-neutrals-100">Cancelar</a>
-            <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="submit-medicamento">
-                Salvar
-            </button>
+            <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="submit-medicamento">Salvar</button>
         </div>
     </form>
 
     {% if medicamento %}
     <div class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6">
-        <div class="flex items-center justify-between mb-4">
-            <div class="font-display text-lg font-bold">Lotes deste medicamento</div>
-            <a href="{% url 'lote_novo' medicamento.id %}" class="text-samu text-sm font-semibold hover:underline">+ Novo lote</a>
-        </div>
+        <div class="flex items-center justify-between mb-4"><div class="font-display text-lg font-bold">Lotes deste medicamento</div><a href="{% url 'lote_novo' medicamento.id %}" class="text-samu text-sm font-semibold hover:underline">+ Novo lote</a></div>
         <div class="divide-y divide-neutrals-200">
             {% for lote in medicamento.lotes.all %}
             <div class="py-3 flex items-center gap-4">
                 <div class="font-mono text-sm text-neutrals-800 w-32">{{ lote.codigo }}</div>
-                <div class="flex-1">
-                    <div class="text-sm">{{ lote.quantidade }} un · Val. {{ lote.validade|date:"d/m/Y" }}</div>
-                    <div class="text-xs text-neutrals-600">{{ lote.get_situacao_display }}</div>
-                </div>
+                <div class="flex-1"><div class="text-sm">{{ lote.quantidade }} un · Val. {{ lote.validade|date:"d/m/Y" }}</div><div class="text-xs text-neutrals-600">{{ lote.get_situacao_display }}</div></div>
                 <a href="{% url 'lote_editar' lote.id %}" class="p-2 rounded-lg hover:bg-neutrals-100" title="Editar"><i data-lucide="pencil" class="icon"></i></a>
-                <form method="post" action="{% url 'lote_excluir' lote.id %}">{% csrf_token %}
-                    <button type="submit" class="p-2 rounded-lg hover:bg-samu-cream text-neutrals-600 hover:text-samu" title="Excluir" onclick="return confirm('Excluir este lote?');"><i data-lucide="trash-2" class="icon"></i></button>
-                </form>
+                <form method="post" action="{% url 'lote_excluir' lote.id %}">{% csrf_token %}<button type="submit" class="p-2 rounded-lg hover:bg-samu-cream text-neutrals-600 hover:text-samu" title="Excluir" onclick="return confirm('Excluir este lote?');"><i data-lucide="trash-2" class="icon"></i></button></form>
             </div>
             {% empty %}<div class="text-sm text-neutrals-600 py-4">Sem lotes cadastrados.</div>{% endfor %}
         </div>
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    // Autocomplete de lotes ao digitar (sugestão de lotes já cadastrados para o nome deste medicamento)
+    const nomeInput = document.querySelector('#id_nome'); const loteInput = document.querySelector('#id_codigo');
+    const sug = document.getElementById('lote-sug');
+    if (!loteInput || !sug) return;
+    let deb;
+    loteInput.addEventListener('input', () => {
+        clearTimeout(deb);
+        const q = loteInput.value.trim(); const med = (nomeInput && nomeInput.value.trim()) || '';
+        if (!q && !med) { sug.classList.add('hidden'); return; }
+        deb = setTimeout(async () => {
+            const r = await fetch(`/api/api/busca/lotes/?q=${encodeURIComponent(q)}&medicamento=${encodeURIComponent(med)}`);
+            const d = await r.json();
+            if (!d.resultados.length) { sug.classList.add('hidden'); return; }
+            sug.innerHTML = d.resultados.map(x => `<button type="button" data-c="${x.codigo}" class="w-full text-left px-4 py-2 hover:bg-neutrals-50 border-b border-neutrals-100 last:border-0"><div class="text-sm font-mono">${x.codigo}</div><div class="text-xs text-neutrals-600">${x.medicamento} · ${x.quantidade} un · val. ${x.validade}</div></button>`).join('');
+            sug.classList.remove('hidden');
+            sug.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { loteInput.value = b.dataset.c; sug.classList.add('hidden'); }));
+        }, 180);
+    });
+    document.addEventListener('click', e => { if (!sug.contains(e.target) && e.target !== loteInput) sug.classList.add('hidden'); });
+})();
+</script>
 {% endblock %}

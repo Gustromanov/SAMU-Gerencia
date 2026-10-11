@@ -7,25 +7,27 @@
         <div>
             <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Frota SAMU</div>
             <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Veículos</h1>
-            <p class="text-sm text-neutrals-600 mt-1">{{ veiculos|length }} viatura(s) monitorada(s) por status operacional.</p>
+            <p class="text-sm text-neutrals-600 mt-1">{{ veiculos|length }} viatura(s) monitorada(s) por status e tipo.</p>
         </div>
-        <a href="{% url 'veiculo_novo' %}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card transition self-start" data-testid="btn-novo-veiculo">
+        <a href="{% url 'veiculo_novo' %}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card self-start" data-testid="btn-novo-veiculo">
             <i data-lucide="plus" class="icon"></i> Novo veículo
         </a>
     </div>
 
     <form method="get" class="rounded-2xl bg-white border border-neutrals-200 p-4 shadow-card">
-        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3">
             <div class="relative">
                 <i data-lucide="search" class="icon absolute left-3.5 top-1/2 -translate-y-1/2 text-neutrals-600"></i>
                 <input type="text" name="q" value="{{ q }}" placeholder="Buscar por ID ou modelo..." autocomplete="off"
-                    class="w-full rounded-xl border border-neutrals-200 pl-10 pr-4 py-3 text-sm focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream"
-                    id="busca-veiculo" data-testid="busca-veiculo-input">
-                <div id="busca-veic-sugestoes" class="autocomplete-list hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-neutrals-200 rounded-xl shadow-card"></div>
+                    class="w-full rounded-xl border border-neutrals-200 pl-10 pr-4 py-3 text-sm focus:border-samu focus:outline-none focus:ring-2 focus:ring-samu-cream" data-testid="busca-veiculo-input">
             </div>
+            <select name="tipo" class="rounded-xl border border-neutrals-200 px-3 py-3 text-sm bg-white" data-testid="filtro-tipo">
+                <option value="">Todos os tipos</option>
+                {% for v, l in tipo_choices %}<option value="{{ v }}" {% if filtro_tipo == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+            </select>
             <select name="status" class="rounded-xl border border-neutrals-200 px-3 py-3 text-sm bg-white" data-testid="filtro-status">
                 <option value="">Todos os status</option>
-                {% for value, label in status_choices %}<option value="{{ value }}" {% if filtro_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                {% for v, l in status_choices %}<option value="{{ v }}" {% if filtro_status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
             </select>
             <button type="submit" class="rounded-xl bg-neutrals-900 text-white px-4 py-3 text-sm font-semibold hover:bg-neutrals-800">Filtrar</button>
         </div>
@@ -35,47 +37,47 @@
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="text-[11px] uppercase tracking-wider text-neutrals-600 bg-neutrals-50 border-b border-neutrals-200">
-                    <tr>
-                        <th class="text-left px-6 py-3">ID</th>
-                        <th class="text-left px-4 py-3">Modelo</th>
-                        <th class="text-left px-4 py-3">Ano</th>
-                        <th class="text-left px-4 py-3">Status</th>
-                        <th class="text-right px-6 py-3">Ações</th>
-                    </tr>
+                    <tr><th class="w-10 px-2 py-3"></th><th class="text-left px-4 py-3">ID</th><th class="text-left px-4 py-3">Modelo</th><th class="text-left px-4 py-3">Ano</th><th class="text-left px-4 py-3">Tipo</th><th class="text-left px-4 py-3">Status</th><th class="text-right px-6 py-3">Ações</th></tr>
                 </thead>
                 <tbody class="divide-y divide-neutrals-200">
                     {% for v in veiculos %}
                     <tr class="table-row" data-testid="linha-veic-{{ v.id }}">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-samu-cream text-samu-dark flex items-center justify-center"><i data-lucide="ambulance" class="icon"></i></div>
-                                <div class="font-mono text-xs">{{ v.codigo_id }}</div>
-                            </div>
-                        </td>
-                        <td class="px-4 py-4 text-neutrals-800">{{ v.modelo }}</td>
-                        <td class="px-4 py-4 text-neutrals-800">{{ v.ano }}</td>
+                        <td class="px-2 py-4 text-center"><button type="button" class="seta-rot p-1.5 rounded-lg hover:bg-neutrals-100" data-toggle="veic-{{ v.id }}" data-testid="toggle-veic-{{ v.id }}"><i data-lucide="chevron-right" class="icon"></i></button></td>
+                        <td class="px-4 py-4"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-samu-cream text-samu-dark flex items-center justify-center"><i data-lucide="ambulance" class="icon"></i></div><div class="font-mono text-xs">{{ v.codigo_id }}</div></div></td>
+                        <td class="px-4 py-4">{{ v.modelo }}</td>
+                        <td class="px-4 py-4">{{ v.ano }}</td>
+                        <td class="px-4 py-4"><span class="badge bg-neutrals-100 text-neutrals-800">{{ v.get_tipo_display }}</span></td>
                         <td class="px-4 py-4">
-                            {% if v.status == 'NORMAL' %}
-                                <span class="badge bg-greens-pale text-greens-good">● Normal</span>
-                            {% elif v.status == 'MANUTENCAO' %}
-                                <span class="badge bg-orange-pale text-orange-deep">● Em manutenção</span>
-                            {% else %}
-                                <span class="badge bg-samu-cream text-samu-dark">● Inativo</span>
-                            {% endif %}
+                            {% if v.status == 'NORMAL' %}<span class="badge bg-greens-pale text-greens-good">● Normal</span>
+                            {% elif v.status == 'MANUTENCAO' %}<span class="badge bg-orange-pale text-orange-deep">● Em manutenção</span>
+                            {% else %}<span class="badge bg-samu-cream text-samu-dark">● Inativo</span>{% endif %}
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center justify-end gap-1">
-                                <a href="{% url 'veiculo_editar' v.id %}" title="Editar" class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" data-testid="btn-editar-veic-{{ v.id }}"><i data-lucide="pencil" class="icon"></i></a>
-                                <form method="post" action="{% url 'veiculo_excluir' v.id %}" onsubmit="return confirm('Remover veículo {{ v.codigo_id|escapejs }}?');">{% csrf_token %}
-                                    <button type="submit" class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" title="Excluir" data-testid="btn-excluir-veic-{{ v.id }}"><i data-lucide="trash-2" class="icon"></i></button>
-                                </form>
+                        <td class="px-6 py-4"><div class="flex items-center justify-end gap-1">
+                            <a href="{% url 'veiculo_editar' v.id %}" title="Editar" class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" data-testid="btn-editar-veic-{{ v.id }}"><i data-lucide="pencil" class="icon"></i></a>
+                            {% if pode_deletar %}
+                            <form method="post" action="{% url 'veiculo_excluir' v.id %}" onsubmit="return confirm('Remover {{ v.codigo_id|escapejs }}?');">{% csrf_token %}
+                                <button type="submit" class="p-2 rounded-lg text-neutrals-600 hover:text-samu hover:bg-samu-cream" title="Excluir" data-testid="btn-excluir-veic-{{ v.id }}"><i data-lucide="trash-2" class="icon"></i></button>
+                            </form>
+                            {% endif %}
+                        </div></td>
+                    </tr>
+                    <tr class="hidden detalhe-row" id="veic-{{ v.id }}">
+                        <td colspan="7" class="bg-neutrals-50 p-0">
+                            <div class="scroll-open p-5">
+                                <div class="text-[11px] uppercase tracking-widest text-samu font-semibold mb-3 flex items-center gap-2"><i data-lucide="info" class="icon"></i> Detalhes da viatura</div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                    <div><div class="text-[10px] uppercase tracking-wider text-neutrals-600">ID</div><div class="font-mono">{{ v.codigo_id }}</div></div>
+                                    <div><div class="text-[10px] uppercase tracking-wider text-neutrals-600">Modelo</div><div>{{ v.modelo }}</div></div>
+                                    <div><div class="text-[10px] uppercase tracking-wider text-neutrals-600">Ano</div><div>{{ v.ano }}</div></div>
+                                    <div><div class="text-[10px] uppercase tracking-wider text-neutrals-600">Tipo</div><div>{{ v.get_tipo_display }}</div></div>
+                                    <div><div class="text-[10px] uppercase tracking-wider text-neutrals-600">Status</div><div>{{ v.get_status_display }}</div></div>
+                                    <div><div class="text-[10px] uppercase tracking-wider text-neutrals-600">Cadastrado em</div><div>{{ v.criado_em|date:"d/m/Y H:i" }}</div></div>
+                                    <div><div class="text-[10px] uppercase tracking-wider text-neutrals-600">Última atualização</div><div>{{ v.atualizado_em|date:"d/m/Y H:i" }}</div></div>
+                                </div>
                             </div>
                         </td>
                     </tr>
-                    {% empty %}<tr><td colspan="5" class="px-6 py-16 text-center text-neutrals-600">
-                        <i data-lucide="ambulance" class="icon-lg mx-auto text-neutrals-300 mb-2"></i>
-                        <div>Nenhum veículo cadastrado.</div>
-                    </td></tr>{% endfor %}
+                    {% empty %}<tr><td colspan="7" class="px-6 py-16 text-center text-neutrals-600"><i data-lucide="ambulance" class="icon-lg mx-auto text-neutrals-300 mb-2"></i><div>Nenhum veículo cadastrado.</div></td></tr>{% endfor %}
                 </tbody>
             </table>
         </div>
@@ -85,27 +87,13 @@
 
 {% block extra_js %}
 <script>
-(() => {
-    const input = document.getElementById('busca-veiculo');
-    const list = document.getElementById('busca-veic-sugestoes');
-    let deb;
-    input.addEventListener('input', () => {
-        clearTimeout(deb);
-        const q = input.value.trim();
-        if (!q) { list.classList.add('hidden'); return; }
-        deb = setTimeout(async () => {
-            const r = await fetch("{% url 'api_busca_veiculos' %}?q=" + encodeURIComponent(q));
-            const d = await r.json();
-            if (!d.resultados.length) { list.classList.add('hidden'); return; }
-            list.innerHTML = d.resultados.map(x => `
-                <button type="button" class="w-full text-left px-4 py-2.5 hover:bg-neutrals-50 border-b border-neutrals-100 last:border-0" onclick="window.location.href='?q=${encodeURIComponent(x.codigo)}'">
-                    <div class="text-sm font-semibold">${x.codigo} · ${x.modelo}</div>
-                    <div class="text-xs text-neutrals-600">${x.status}</div>
-                </button>`).join('');
-            list.classList.remove('hidden');
-        }, 180);
+document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const row = document.getElementById(btn.dataset.toggle);
+        if (!row) return;
+        row.classList.toggle('hidden');
+        btn.classList.toggle('open');
     });
-    document.addEventListener('click', (e) => { if (!list.contains(e.target) && e.target !== input) list.classList.add('hidden'); });
-})();
+});
 </script>
 {% endblock %}

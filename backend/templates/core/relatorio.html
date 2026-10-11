@@ -7,110 +7,89 @@
         <div>
             <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Panorama operacional</div>
             <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Relatório</h1>
-            <p class="text-sm text-neutrals-600 mt-1">Painel geral com indicadores, distribuições e alertas prioritários.</p>
+            <p class="text-sm text-neutrals-600 mt-1">Dashboards com valores nominais e percentuais, alertas prioritários e exportação completa.</p>
         </div>
+        {% if pode_exportar %}
         <div class="flex flex-wrap gap-2">
-            <a href="{% url 'relatorio_xlsx' %}"
-                class="inline-flex items-center gap-2 rounded-xl bg-white border border-greens-good text-greens-good font-semibold px-4 py-2.5 hover:bg-greens-pale transition"
-                data-testid="btn-exportar-xlsx">
-                <i data-lucide="file-spreadsheet" class="icon"></i> Baixar planilha (.xlsx)
-            </a>
-            <a href="{% url 'relatorio_pdf' %}"
-                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card transition"
-                data-testid="btn-exportar-pdf">
-                <i data-lucide="file-text" class="icon"></i> Baixar PDF
-            </a>
+            <button type="button" id="btn-anexar-local" class="inline-flex items-center gap-2 rounded-xl bg-white border border-neutrals-800 text-neutrals-800 font-semibold px-4 py-2.5 hover:bg-neutrals-100" data-testid="btn-anexar-local">
+                <i data-lucide="folder-open" class="icon"></i> <span id="label-anexar">Anexar local</span>
+            </button>
+            <a href="{% url 'relatorio_xlsx' %}" class="inline-flex items-center gap-2 rounded-xl bg-white border border-greens-good text-greens-good font-semibold px-4 py-2.5 hover:bg-greens-pale" data-testid="btn-exportar-xlsx"><i data-lucide="file-spreadsheet" class="icon"></i> Baixar planilha (.xlsx)</a>
+            <a href="{% url 'relatorio_pdf' %}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-4 py-2.5 hover:opacity-95 shadow-card" data-testid="btn-exportar-pdf"><i data-lucide="file-text" class="icon"></i> Baixar PDF</a>
         </div>
+        {% endif %}
     </div>
 
-    {# KPIs #}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div class="rounded-2xl bg-gradient-to-br from-samu to-samu-dark text-white p-5 shadow-card">
-            <div class="text-[10px] uppercase tracking-widest text-white/70">Estoque total</div>
-            <div class="font-display text-4xl font-bold mt-1">{{ kpis.estoque_total }}</div>
-            <div class="text-[10px] uppercase tracking-widest text-white/70 mt-1">unidades</div>
-        </div>
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
-            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Medicamentos</div>
-            <div class="font-display text-4xl font-bold mt-1">{{ kpis.medicamentos }}</div>
-        </div>
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
-            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Lotes</div>
-            <div class="font-display text-4xl font-bold mt-1">{{ kpis.lotes }}</div>
-        </div>
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
-            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Funcionários</div>
-            <div class="font-display text-4xl font-bold mt-1">{{ kpis.funcionarios }}</div>
-        </div>
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card">
-            <div class="text-[10px] uppercase tracking-widest text-neutrals-600">Veículos</div>
-            <div class="font-display text-4xl font-bold mt-1">{{ kpis.veiculos }}</div>
-        </div>
+        <div class="rounded-2xl bg-gradient-to-br from-samu to-samu-dark text-white p-5 shadow-card"><div class="text-[10px] uppercase tracking-widest text-white/70">Estoque total</div><div class="font-display text-4xl font-bold mt-1">{{ kpis.estoque_total }}</div><div class="text-[10px] uppercase tracking-widest text-white/70 mt-1">unidades</div></div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card"><div class="text-[10px] uppercase tracking-widest text-neutrals-600">Medicamentos</div><div class="font-display text-4xl font-bold mt-1">{{ kpis.medicamentos }}</div></div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card"><div class="text-[10px] uppercase tracking-widest text-neutrals-600">Lotes</div><div class="font-display text-4xl font-bold mt-1">{{ kpis.lotes }}</div></div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card"><div class="text-[10px] uppercase tracking-widest text-neutrals-600">Funcionários</div><div class="font-display text-4xl font-bold mt-1">{{ kpis.funcionarios }}</div></div>
+        <div class="rounded-2xl bg-white border border-neutrals-200 p-5 shadow-card"><div class="text-[10px] uppercase tracking-widest text-neutrals-600">Veículos</div><div class="font-display text-4xl font-bold mt-1">{{ kpis.veiculos }}</div></div>
     </div>
 
-    {# Charts #}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 rounded-2xl bg-white border border-neutrals-200 p-6 shadow-card">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div>
-                    <div class="font-display text-lg font-bold">Distribuição do estoque</div>
-                    <div class="text-xs text-neutrals-600">Total de unidades agrupadas pelo filtro selecionado.</div>
-                </div>
-                <div class="flex items-center gap-1 bg-neutrals-100 rounded-xl p-1" role="tablist">
-                    <button data-filtro="tipo" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition" data-testid="filtro-chart-tipo">Por tipo</button>
-                    <button data-filtro="forma" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition" data-testid="filtro-chart-forma">Por forma</button>
-                    <button data-filtro="validade" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition" data-testid="filtro-chart-validade">Por validade</button>
-                </div>
-            </div>
-            <div class="h-[320px]"><canvas id="chart-estoque"></canvas></div>
-        </div>
-        <div class="rounded-2xl bg-white border border-neutrals-200 p-6 shadow-card">
-            <div class="font-display text-lg font-bold">Frota por status</div>
-            <div class="text-xs text-neutrals-600 mb-4">Distribuição das viaturas do SAMU.</div>
-            <div class="h-[320px]"><canvas id="chart-veiculos"></canvas></div>
-        </div>
+    {% if mostra_medicamentos %}
+    <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Dashboards · Medicamentos</div></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% include "core/_grafico.html" with id="dash-tipo" pesquisa="tipo" titulo="Quantidade total de medicamentos por tipo (analgésicos, antibióticos etc.)" descricao="Soma das quantidades de todos os lotes, agrupada pela categoria/finalidade cadastrada em cada medicamento." %}
+        {% include "core/_grafico.html" with id="dash-forma" pesquisa="forma" titulo="Quantidade total de medicamentos por forma farmacêutica" descricao="Distribuição de unidades por apresentação física (comprimido, cápsula, ampola, pomada, etc.)." %}
+        {% include "core/_grafico.html" with id="dash-validade" pesquisa="validade" titulo="Quantidade total por classificação de validade" descricao="Agrupamento pelos intervalos definidos no painel do administrador: Vencido, Muito próximo, Próximo, Controlado, Distante. Os intervalos precisam estar configurados." %}
+        {% include "core/_grafico.html" with id="dash-situacao" pesquisa="situacao" titulo="Distribuição do estoque por situação" descricao="Unidades em cada situação de lote: Recebidos, Entregues (loteado) e Doados." %}
+        {% include "core/_grafico.html" with id="dash-mov" pesquisa="movimentacao" titulo="Movimentação de medicamentos — funcionários que mais manipularam" descricao="Quantidade de movimentações registradas por usuário no intervalo escolhido (padrão {{ intervalo_padrao }} dias)." intervalo=True %}
+        {% include "core/_grafico.html" with id="dash-lotes" pesquisa="lotes" titulo="Lotes com maior quantidade de medicamentos" descricao="Top 20 lotes ordenados pela soma de unidades armazenadas, para identificar concentração de estoque." %}
     </div>
+    {% endif %}
 
-    {# Alertas #}
+    {% if mostra_veiculos %}
+    <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Dashboards · Frota</div></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% include "core/_grafico.html" with id="dash-veic-status" pesquisa="veic_status" titulo="Veículos por status operacional" descricao="Distribuição da frota entre Normal, Em manutenção e Inativo. Ajuda a identificar necessidade de reparo." %}
+        {% include "core/_grafico.html" with id="dash-veic-tipo" pesquisa="veic_tipo" titulo="Veículos por tipo de viatura" descricao="Quantidade de Vans/Ambulâncias, Carros e Motolâncias atualmente cadastradas." %}
+    </div>
+    {% endif %}
+
+    {% if mostra_medicamentos %}
+    <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Alertas e listas prioritárias</div></div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="rounded-2xl bg-white border border-orange-deep/30 p-5 shadow-card">
-            <div class="flex items-center gap-2 text-orange-deep font-semibold mb-3"><i data-lucide="alert-triangle" class="icon"></i> Estoque baixo</div>
-            <div class="divide-y divide-neutrals-200">
-                {% for l in baixo %}
-                <div class="py-2.5">
-                    <div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome }}</div>
-                    <div class="text-xs text-neutrals-600">{{ l.codigo }} · {{ l.medicamento.tipo.nome }} <span class="float-right font-mono">{{ l.quantidade }} un</span></div>
-                </div>
-                {% empty %}<div class="text-sm text-neutrals-600 py-4">Nenhum item em nível baixo.</div>{% endfor %}
+        <div class="rounded-2xl bg-white border border-samu-soft/60 p-5 shadow-card">
+            <div class="flex items-center gap-2 text-samu-dark font-semibold mb-3"><i data-lucide="alert-triangle" class="icon"></i> Vencidos / Muito próximos</div>
+            <div class="divide-y divide-neutrals-200 max-h-[320px] overflow-y-auto">
+                {% for l in vencendo %}
+                <div class="py-2.5"><div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome_exibicao }}</div>
+                <div class="text-xs text-neutrals-600">{{ l.codigo }} · {{ l.medicamento.tipo.nome }} <span class="float-right font-mono {% if l.vencido %}text-samu-dark{% else %}text-orange-deep{% endif %}">{% if l.vencido %}{{ l.dias_para_validade }}d · vencido{% else %}{{ l.dias_para_validade }}d{% endif %}</span></div></div>
+                {% empty %}<div class="text-sm text-neutrals-600 py-4">Nenhum lote crítico. ✓</div>{% endfor %}
             </div>
         </div>
-        <div class="rounded-2xl bg-white border border-samu-soft/60 p-5 shadow-card">
-            <div class="flex items-center gap-2 text-samu-dark font-semibold mb-3"><i data-lucide="alert-octagon" class="icon"></i> Muito baixo</div>
-            <div class="divide-y divide-neutrals-200">
-                {% for l in muito_baixo %}
-                <div class="py-2.5">
-                    <div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome }}</div>
-                    <div class="text-xs text-neutrals-600">{{ l.codigo }} · {{ l.medicamento.tipo.nome }} <span class="float-right font-mono text-samu-dark font-bold">{{ l.quantidade }} un</span></div>
-                </div>
-                {% empty %}<div class="text-sm text-neutrals-600 py-4">Sem itens críticos.</div>{% endfor %}
+        <div class="rounded-2xl bg-white border border-orange-deep/30 p-5 shadow-card">
+            <div class="flex items-center gap-2 text-orange-deep font-semibold mb-3"><i data-lucide="alert-octagon" class="icon"></i> Estoque baixo / muito baixo</div>
+            <div class="divide-y divide-neutrals-200 max-h-[320px] overflow-y-auto">
+                {% for l in muito_baixo %}<div class="py-2.5"><div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome_exibicao }}</div><div class="text-xs text-neutrals-600">{{ l.codigo }} <span class="float-right font-mono text-samu-dark font-bold">{{ l.quantidade }} un · muito baixo</span></div></div>{% endfor %}
+                {% for l in baixo %}<div class="py-2.5"><div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome_exibicao }}</div><div class="text-xs text-neutrals-600">{{ l.codigo }} <span class="float-right font-mono text-orange-deep">{{ l.quantidade }} un · baixo</span></div></div>{% endfor %}
+                {% if not muito_baixo and not baixo %}<div class="text-sm text-neutrals-600 py-4">Sem itens em baixo estoque. ✓</div>{% endif %}
             </div>
         </div>
         <div class="rounded-2xl bg-white border border-yellow-warn/50 p-5 shadow-card">
-            <div class="flex items-center gap-2 text-yellow-warn font-semibold mb-3"><i data-lucide="calendar-clock" class="icon"></i> Validade próxima</div>
-            <div class="divide-y divide-neutrals-200">
-                {% for l in vencendo %}
-                <div class="py-2.5">
-                    <div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome }}</div>
-                    <div class="text-xs text-neutrals-600">{{ l.codigo }} · {{ l.medicamento.tipo.nome }}
-                        <span class="float-right {% if l.vencido %}text-samu-dark{% else %}text-yellow-warn{% endif %} font-semibold">
-                        {% if l.vencido %}Vencido{% else %}{{ l.dias_para_validade }}d{% endif %}
-                        </span>
-                    </div>
-                </div>
-                {% empty %}<div class="text-sm text-neutrals-600 py-4">Nenhum lote próximo do vencimento.</div>{% endfor %}
+            <div class="flex items-center gap-2 text-yellow-warn font-semibold mb-3"><i data-lucide="shield-check" class="icon"></i> Controlados</div>
+            <div class="divide-y divide-neutrals-200 max-h-[320px] overflow-y-auto">
+                {% for l in controlados %}<div class="py-2.5"><div class="font-semibold text-neutrals-900 text-sm">{{ l.medicamento.nome_exibicao }}</div><div class="text-xs text-neutrals-600">{{ l.codigo }} <span class="float-right font-mono">{{ l.quantidade }} un</span></div></div>
+                {% empty %}<div class="text-sm text-neutrals-600 py-4">Nenhum lote em janela "Controlado".</div>{% endfor %}
             </div>
         </div>
     </div>
+
+    <div class="rounded-2xl bg-gradient-to-br from-samu-dark to-samu text-white p-5 shadow-card">
+        <div class="flex items-center gap-2 text-white font-semibold mb-3"><i data-lucide="alert-triangle" class="icon-lg"></i> Lotes com 2 ou mais características críticas simultâneas</div>
+        <div class="text-xs text-white/80 mb-3">Lotes aqui estão vencendo/vencidos E com estoque baixo (ou outros cruzamentos). Alta prioridade.</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[280px] overflow-y-auto">
+            {% for l in criticos %}
+            <div class="bg-white/10 rounded-xl p-3 backdrop-blur">
+                <div class="font-semibold text-sm">{{ l.medicamento.nome_exibicao }}</div>
+                <div class="text-xs text-white/80">{{ l.codigo }} · {{ l.quantidade }} un · {{ l.nivel_estoque_label }} · {{ l.nivel_validade_label }}{% if l.mostra_dias_restantes %} ({{ l.dias_para_validade }}d){% endif %}</div>
+            </div>
+            {% empty %}<div class="text-sm text-white/80 py-2">Nenhum lote compartilha múltiplas características críticas. ✓</div>{% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -118,49 +97,81 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
 (() => {
-    const colorsBar = ['#DC2626', '#C2410C', '#FBBF24', '#16A34A', '#7F1D1D', '#FDBA74', '#525252', '#F87171'];
-    let chartEstoque, chartVeic;
+    const paleta = ['#DC2626', '#C2410C', '#FBBF24', '#16A34A', '#7F1D1D', '#FDBA74', '#525252', '#F87171', '#DCFCE7', '#FEF2F2'];
+    const charts = {};
 
-    function setActive(filtro) {
-        document.querySelectorAll('.filtro-btn').forEach(b => {
-            const on = b.dataset.filtro === filtro;
-            b.className = 'filtro-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition ' + (on ? 'bg-white shadow text-samu-dark' : 'text-neutrals-600 hover:text-neutrals-900');
-        });
-    }
-
-    async function carregar(filtro) {
-        setActive(filtro);
-        const r = await fetch("{% url 'api_relatorio' %}?filtro=" + filtro);
-        const d = await r.json();
-
-        if (chartEstoque) chartEstoque.destroy();
-        chartEstoque = new Chart(document.getElementById('chart-estoque'), {
-            type: 'bar',
-            data: { labels: d.estoque.labels, datasets: [{ label: 'Unidades', data: d.estoque.valores, backgroundColor: d.estoque.labels.map((_,i) => colorsBar[i % colorsBar.length]), borderRadius: 8, borderSkipped: false }] },
+    async function carregar(id, pesquisa, tipo, dias) {
+        const url = `/api/api/relatorio/?pesquisa=${pesquisa}&dias=${dias || 30}`;
+        const r = await fetch(url); const d = await r.json();
+        const canvas = document.getElementById('canvas-' + id);
+        if (charts[id]) charts[id].destroy();
+        if (!d.labels.length) {
+            canvas.parentElement.innerHTML = '<div class="h-full flex items-center justify-center text-sm text-neutrals-600">Dados ainda não disponíveis.</div>';
+            return;
+        }
+        const dataWithPct = d.labels.map((lbl, i) => `${lbl} — ${d.valores[i]} (${d.percentuais[i]}%)`);
+        const cfg = {
+            type: tipo === 'rosca' ? 'doughnut' : tipo === 'pizza' ? 'pie' : 'bar',
+            data: {
+                labels: tipo === 'barras' ? d.labels : dataWithPct,
+                datasets: [{
+                    label: 'Unidades', data: d.valores,
+                    backgroundColor: d.labels.map((_, i) => paleta[i % paleta.length]),
+                    borderRadius: 6, borderWidth: tipo === 'barras' ? 0 : 2, borderColor: 'white',
+                }],
+            },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
+                plugins: {
+                    legend: { display: tipo !== 'barras', position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
+                    tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw} (${d.percentuais[c.dataIndex]}%)` } },
+                    title: { display: false },
+                },
+                scales: tipo === 'barras' ? {
                     x: { grid: { display: false }, ticks: { color: '#525252', font: { size: 11 } } },
                     y: { beginAtZero: true, grid: { color: '#F5F5F5' }, ticks: { color: '#525252', font: { size: 11 } } }
-                }
+                } : {}
             }
-        });
-
-        if (!chartVeic) {
-            chartVeic = new Chart(document.getElementById('chart-veiculos'), {
-                type: 'doughnut',
-                data: { labels: d.veiculos.labels, datasets: [{ data: d.veiculos.valores, backgroundColor: ['#16A34A', '#FBBF24', '#DC2626'], borderWidth: 0 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '65%',
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
-                }
-            });
-        }
+        };
+        charts[id] = new Chart(canvas, cfg);
     }
 
-    document.querySelectorAll('.filtro-btn').forEach(b => b.addEventListener('click', () => carregar(b.dataset.filtro)));
-    carregar('tipo');
+    document.querySelectorAll('[data-dash]').forEach(wrapper => {
+        const id = wrapper.dataset.dash; const pesquisa = wrapper.dataset.pesquisa;
+        let tipoAtual = 'barras';
+        let dias = wrapper.querySelector('[data-dias]')?.value || 30;
+        const render = () => carregar(id, pesquisa, tipoAtual, dias);
+        wrapper.querySelectorAll('[data-tipo]').forEach(btn => btn.addEventListener('click', () => {
+            tipoAtual = btn.dataset.tipo;
+            wrapper.querySelectorAll('[data-tipo]').forEach(b => b.classList.toggle('bg-samu', b === btn));
+            wrapper.querySelectorAll('[data-tipo]').forEach(b => b.classList.toggle('text-white', b === btn));
+            render();
+        }));
+        wrapper.querySelector('[data-dias]')?.addEventListener('change', e => { dias = e.target.value || 30; render(); });
+        render();
+    });
+
+    // Anexar local (diretório padrão de downloads)
+    const btn = document.getElementById('btn-anexar-local');
+    const label = document.getElementById('label-anexar');
+    const KEY = 'samu_download_dir';
+    if (btn) {
+        const dir = localStorage.getItem(KEY);
+        if (dir) label.textContent = 'Pasta: ' + dir;
+        btn.addEventListener('click', async () => {
+            try {
+                if (window.showDirectoryPicker) {
+                    const h = await window.showDirectoryPicker();
+                    localStorage.setItem(KEY, h.name);
+                    label.textContent = 'Pasta: ' + h.name;
+                    alert('Pasta "' + h.name + '" definida como diretório de downloads. Os próximos downloads de relatório serão oferecidos para salvar neste local.');
+                } else {
+                    const d = prompt('Digite o caminho da pasta onde os relatórios devem ser salvos:', dir || '');
+                    if (d) { localStorage.setItem(KEY, d); label.textContent = 'Pasta: ' + d; }
+                }
+            } catch (err) { console.log(err); }
+        });
+    }
 })();
 </script>
 {% endblock %}

@@ -2,7 +2,7 @@
 {% block title %}Meu Perfil · SAMU 192{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-[1400px] mx-auto space-y-6">
     <div>
         <div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Sua conta</div>
         <h1 class="font-display text-4xl font-bold text-neutrals-900 mt-1">Meu perfil</h1>
@@ -10,17 +10,16 @@
 
     <div class="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
         <div class="rounded-2xl bg-gradient-to-br from-samu to-samu-dark text-white p-6 shadow-card noise">
-            <div class="w-24 h-24 rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur flex items-center justify-center font-display font-bold text-4xl mx-auto">
-                {{ perfil.iniciais }}
-            </div>
+            <div class="w-24 h-24 rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur flex items-center justify-center font-display font-bold text-4xl mx-auto">{{ perfil.iniciais }}</div>
             <div class="mt-4 text-center">
                 <div class="font-display text-lg font-bold">{{ user.get_full_name|default:user.username }}</div>
-                <div class="text-xs text-white/80 mt-1">{{ perfil.cargo|default:'Operador(a) SAMU' }}</div>
+                <div class="text-xs text-white/80 mt-1">{{ perfil.get_funcao_display }}</div>
             </div>
             <div class="mt-6 space-y-2 text-sm">
                 <div class="flex items-center gap-2 text-white/90"><i data-lucide="mail" class="icon"></i> {{ user.email|default:'—' }}</div>
                 <div class="flex items-center gap-2 text-white/90"><i data-lucide="phone" class="icon"></i> {{ perfil.telefone|default:'—' }}</div>
                 <div class="flex items-center gap-2 text-white/90"><i data-lucide="at-sign" class="icon"></i> {{ user.username }}</div>
+                {% if perfil.data_nascimento %}<div class="flex items-center gap-2 text-white/90"><i data-lucide="cake" class="icon"></i> {{ perfil.data_nascimento|date:"d/m/Y" }}</div>{% endif %}
             </div>
         </div>
 
@@ -31,13 +30,143 @@
                 <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Nome completo</span>{{ form.first_name }}</label>
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">E-mail</span>{{ form.email }}</label>
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Telefone</span>{{ form.telefone }}</label>
-                <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Cargo</span>{{ form.cargo }}</label>
-                <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Bio</span>{{ form.bio }}</label>
+                <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Data de nascimento</span>{{ form.data_nascimento }}</label>
             </div>
             <div class="flex items-center justify-end gap-2 pt-2">
                 <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="submit-perfil">Salvar alterações</button>
             </div>
         </form>
     </div>
+
+    {% if perfil.is_admin %}
+    <!-- ==================== PAINEL DO ADMINISTRADOR ==================== -->
+    <div class="rounded-2xl bg-gradient-to-br from-samu to-samu-dark text-white p-6 shadow-card noise">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center"><i data-lucide="shield-check" class="icon-lg"></i></div>
+            <div><div class="font-display text-xl font-bold">Painel do Administrador</div><div class="text-xs text-white/80">Contas · Definições · Rede · Banco de dados</div></div>
+        </div>
+    </div>
+
+    <!-- CONTAS -->
+    <div class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Contas</div><div class="font-display text-xl font-bold">Usuários do sistema</div></div>
+            <a href="{% url 'registrar' %}" class="text-sm font-semibold text-samu hover:underline" data-testid="link-nova-conta">+ Nova conta</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="text-[11px] uppercase text-neutrals-600 bg-neutrals-50 border-b border-neutrals-200">
+                    <tr><th class="text-left px-4 py-3">Nome</th><th class="text-left px-4 py-3">Usuário</th><th class="text-left px-4 py-3">E-mail</th><th class="text-left px-4 py-3">Função</th><th class="text-left px-4 py-3">Telefone</th><th class="text-right px-4 py-3">Ações</th></tr>
+                </thead>
+                <tbody class="divide-y divide-neutrals-200">
+                    {% for c in contas %}
+                    <tr class="table-row" data-testid="conta-{{ c.id }}">
+                        <td class="px-4 py-3"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-gradient-to-br from-samu to-orange-deep text-white flex items-center justify-center text-xs font-bold">{{ c.iniciais }}</div>{{ c.user.get_full_name|default:c.user.username }}</div></td>
+                        <td class="px-4 py-3 font-mono text-xs">{{ c.user.username }}</td>
+                        <td class="px-4 py-3">{{ c.user.email|default:"—" }}</td>
+                        <td class="px-4 py-3"><span class="badge {% if c.funcao == 'ADMINISTRADOR' %}bg-samu-cream text-samu-dark{% elif c.funcao == 'MOTORISTA' %}bg-orange-pale text-orange-deep{% else %}bg-neutrals-100 text-neutrals-800{% endif %}">{{ c.get_funcao_display }}</span></td>
+                        <td class="px-4 py-3 text-xs text-neutrals-600">{{ c.telefone|default:"—" }}</td>
+                        <td class="px-4 py-3"><div class="flex items-center justify-end gap-1">
+                            <a href="{% url 'conta_editar' c.id %}" class="p-2 rounded-lg hover:bg-samu-cream text-neutrals-600 hover:text-samu" title="Editar" data-testid="btn-editar-conta-{{ c.id }}"><i data-lucide="pencil" class="icon"></i></a>
+                            {% if c.user_id != user.id %}
+                            <form method="post" action="{% url 'conta_excluir' c.id %}" onsubmit="return confirm('Excluir conta de {{ c.user.get_full_name|default:c.user.username|escapejs }}? Esta ação é irreversível.');">{% csrf_token %}
+                                <button type="submit" class="p-2 rounded-lg hover:bg-samu-cream text-neutrals-600 hover:text-samu" title="Excluir" data-testid="btn-excluir-conta-{{ c.id }}"><i data-lucide="trash-2" class="icon"></i></button>
+                            </form>
+                            {% endif %}
+                        </div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DEFINIÇÕES -->
+    <form method="post" action="{% url 'configuracao' %}" class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-5">
+        {% csrf_token %}
+        <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Definições</div><div class="font-display text-xl font-bold">Intervalos e preferências</div></div>
+
+        <div>
+            <div class="font-semibold text-sm mb-2">Estoque (unidades)</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Muito baixo (≤)</span>{{ cfg_form.estoque_muito_baixo }}</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Baixo (≤)</span>{{ cfg_form.estoque_baixo }}</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Alto (≥)</span>{{ cfg_form.estoque_alto }}</label>
+            </div>
+            <div class="text-[11px] text-neutrals-600 mt-1">Valores entre "muito baixo" e "baixo" classificam como Baixo; entre "baixo" e "alto" como Normal; a partir de "alto" como Alto.</div>
+        </div>
+
+        <div>
+            <div class="font-semibold text-sm mb-2">Validade (dias restantes)</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Muito próximo (≤)</span>{{ cfg_form.validade_muito_proximo }}</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Próximo (≤)</span>{{ cfg_form.validade_proximo }}</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Controlado (≤)</span>{{ cfg_form.validade_controlado }}</label>
+            </div>
+            <div class="text-[11px] text-neutrals-600 mt-1">Dias negativos indicam medicamentos vencidos. Acima de "controlado" é "Distante".</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Intervalo padrão (dias) p/ gráficos de movimentação</span>{{ cfg_form.intervalo_dias_padrao }}</label>
+            <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Diretório padrão de downloads (ex.: C:\Relatorios)</span>{{ cfg_form.diretorio_downloads }}</label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="salvar-config">Salvar definições</button>
+        </div>
+    </form>
+
+    <!-- REDE LOCAL -->
+    <div class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-4">
+        <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Modo rede local</div><div class="font-display text-xl font-bold">Compartilhar com outros dispositivos</div></div>
+        <p class="text-sm text-neutrals-600">Clique no botão para gerar o link de acesso para outros computadores/celulares conectados na mesma rede Wi-Fi.</p>
+        <button type="button" id="btn-gerar-link" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold px-5 py-2.5 hover:opacity-95 shadow-card" data-testid="btn-gerar-link-rede">
+            <i data-lucide="wifi" class="icon"></i> Gerar link da rede local
+        </button>
+        <div id="links-rede" class="hidden space-y-2">
+            <div class="text-[11px] uppercase tracking-widest text-neutrals-600 font-semibold">Endereços disponíveis — clique para copiar</div>
+            <div id="links-rede-lista" class="space-y-2"></div>
+            <div class="text-[11px] text-neutrals-600">⚠ Qualquer dispositivo na mesma Wi-Fi poderá acessar com usuário/senha. Compartilhe apenas com a equipe autorizada.</div>
+        </div>
+    </div>
+
+    <!-- BANCO DE DADOS -->
+    <div class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-4">
+        <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Banco de dados</div><div class="font-display text-xl font-bold">Backup, restauração e exclusão</div></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{% url 'db_backup' %}" class="rounded-xl bg-white border border-greens-good text-greens-good font-semibold px-4 py-3 text-center hover:bg-greens-pale" data-testid="btn-backup"><i data-lucide="download" class="icon inline"></i> Baixar backup (.sqlite3)</a>
+            <form method="post" action="{% url 'db_restaurar' %}" enctype="multipart/form-data" class="flex items-center gap-2">{% csrf_token %}
+                <input type="file" name="backup" accept=".sqlite3,.db" required class="flex-1 text-xs" data-testid="input-restaurar">
+                <button type="submit" onclick="return confirm('Tem certeza que deseja sobrepor estes dados? Todos os dados atuais serão substituídos pelo backup.');" class="rounded-xl bg-white border border-orange-deep text-orange-deep font-semibold px-4 py-2.5 hover:bg-orange-pale text-sm whitespace-nowrap" data-testid="btn-restaurar"><i data-lucide="upload" class="icon inline"></i> Restaurar</button>
+            </form>
+            <form method="post" action="{% url 'db_apagar' %}" class="flex items-center gap-2">{% csrf_token %}
+                <input type="text" name="confirmacao" placeholder="Digite APAGAR" required class="flex-1 rounded-xl border border-neutrals-200 px-3 py-2 text-xs" data-testid="input-apagar">
+                <button type="submit" onclick="return confirm('Isso apagará TODOS os medicamentos, lotes, funcionários, veículos e movimentações. Usuários/configurações serão preservados. Continuar?');" class="rounded-xl bg-samu text-white font-semibold px-4 py-2.5 hover:bg-samu-dark text-sm whitespace-nowrap" data-testid="btn-apagar"><i data-lucide="trash-2" class="icon inline"></i> Apagar dados</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if perfil.is_admin %}
+<script>
+document.getElementById('btn-gerar-link').addEventListener('click', async () => {
+    const r = await fetch("{% url 'api_rede_local' %}");
+    const d = await r.json();
+    const box = document.getElementById('links-rede');
+    const lst = document.getElementById('links-rede-lista');
+    lst.innerHTML = d.links.map(l => `
+        <div class="flex items-center gap-2 bg-neutrals-50 rounded-xl border border-neutrals-200 px-4 py-3">
+            <i data-lucide="link" class="icon text-samu"></i>
+            <code class="flex-1 text-sm font-mono text-neutrals-900 truncate">${l}</code>
+            <button type="button" class="rounded-lg bg-samu text-white px-3 py-1.5 text-xs font-semibold hover:bg-samu-dark" onclick="navigator.clipboard.writeText('${l}'); this.textContent='Copiado!'; setTimeout(()=>this.textContent='Copiar', 1500);">Copiar</button>
+            <a href="${l}" target="_blank" class="rounded-lg bg-white border border-samu text-samu px-3 py-1.5 text-xs font-semibold hover:bg-samu-cream">Abrir</a>
+        </div>`).join('');
+    box.classList.remove('hidden');
+    window.lucide && window.lucide.createIcons();
+});
+</script>
+{% endif %}
 {% endblock %}

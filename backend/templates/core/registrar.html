@@ -1,38 +1,30 @@
-{% extends "core/base.html" %}
+{% extends "core/base.html" %}{% load static %}
 {% block title %}Criar conta · SAMU 192{% endblock %}
 
 {% block auth_content %}
-<div class="min-h-screen flex items-center justify-center bg-neutrals-50 p-6">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-card border border-neutrals-200 p-8">
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white flex items-center justify-center">
-                <i data-lucide="ambulance" class="icon-lg"></i>
-            </div>
-            <div>
-                <div class="font-display font-bold">SAMU 192</div>
-                <div class="text-[10px] uppercase tracking-widest text-neutrals-600 mt-0.5">Criar conta</div>
-            </div>
-        </div>
+<div class="min-h-screen flex items-center justify-center bg-neutrals-50 p-6 py-12">
+    <div class="w-full max-w-xl bg-white rounded-2xl shadow-card border border-neutrals-200 p-8">
+        <div class="flex items-center gap-3 mb-6"><img src="{% static 'core/samu-logo.svg' %}" class="w-11 h-11" alt="SAMU"><div><div class="font-display font-bold">SAMU 192</div><div class="text-[10px] uppercase tracking-widest text-neutrals-600 mt-0.5">Criar conta</div></div></div>
         <h1 class="font-display text-2xl font-bold text-neutrals-900">Novo acesso</h1>
-        <p class="text-sm text-neutrals-600 mt-1">Cadastre-se para operar o sistema de estoque local.</p>
+        <p class="text-sm text-neutrals-600 mt-1">Cadastre-se com sua função para operar o sistema.</p>
 
-        <form method="post" class="mt-6 space-y-4">
+        <form method="post" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             {% csrf_token %}
             {% for field in form %}
-            <label class="block">
+            {% if field.name == 'remember_me' %}
+              <label class="md:col-span-2 flex items-center gap-2 text-sm text-neutrals-700 cursor-pointer">{{ field }} Lembrar desta sessão</label>
+            {% else %}
+              <label class="block {% if field.name == 'nome_completo' or field.name == 'funcao' %}md:col-span-2{% endif %}">
                 <span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">{{ field.label }}</span>
                 <div class="mt-1.5">{{ field }}</div>
                 {% if field.errors %}<div class="text-xs text-samu mt-1">{{ field.errors|join:" " }}</div>{% endif %}
                 {% if field.help_text %}<div class="text-[11px] text-neutrals-600 mt-1">{{ field.help_text|safe }}</div>{% endif %}
-            </label>
+              </label>
+            {% endif %}
             {% endfor %}
-            <button type="submit" class="w-full rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold py-3 hover:opacity-95 transition">
-                Criar conta
-            </button>
+            <button type="submit" class="md:col-span-2 w-full rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white font-semibold py-3 hover:opacity-95 shadow-card">Criar conta</button>
         </form>
-        <div class="mt-6 text-sm text-neutrals-600 text-center">
-            Já tem conta? <a href="{% url 'login' %}" class="text-samu font-semibold hover:underline">Entrar</a>
-        </div>
+        <div class="mt-6 text-sm text-neutrals-600 text-center">Já tem conta? <a href="{% url 'login' %}" class="text-samu font-semibold hover:underline">Entrar</a></div>
     </div>
 </div>
 {% endblock %}
