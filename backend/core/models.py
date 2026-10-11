@@ -56,6 +56,14 @@ class Configuracao(models.Model):
     # Flag: thresholds de validade foram definidos pelo admin?
     validade_configurada = models.BooleanField(default=False)
 
+    # Backup Firebase
+    firebase_bucket = models.CharField(max_length=200, blank=True, default="")
+    firebase_simulado = models.BooleanField(default=True)
+    firebase_auto = models.BooleanField(default=False)
+    firebase_intervalo_horas = models.PositiveIntegerField(default=24)
+    firebase_sync_login = models.BooleanField(default=True)
+    firebase_ultimo_backup = models.DateTimeField(null=True, blank=True)
+
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -320,6 +328,35 @@ class Movimentacao(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} — {self.lote} ({self.quantidade})"
+
+
+# ---------- Histórico de backups Firebase ----------
+class BackupFirebase(models.Model):
+    ORIGEM_CHOICES = [
+        ("MANUAL", "Manual (painel)"),
+        ("AUTOMATICO", "Automático"),
+        ("LOGIN", "Ao fazer login"),
+        ("TERMINAL", "Terminal / agendador"),
+    ]
+    MODO_CHOICES = [("REAL", "Firebase"), ("SIMULADO", "Simulado (local)")]
+    STATUS_CHOICES = [("SUCESSO", "Sucesso"), ("ERRO", "Erro")]
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    origem = models.CharField(max_length=12, choices=ORIGEM_CHOICES)
+    modo = models.CharField(max_length=10, choices=MODO_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ERRO")
+    destino = models.CharField(max_length=500, blank=True, default="")
+    tamanho_bytes = models.PositiveIntegerField(default=0)
+    mensagem = models.CharField(max_length=500, blank=True, default="")
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="backups_firebase")
+
+    class Meta:
+        verbose_name = "Backup Firebase"
+        verbose_name_plural = "Backups Firebase"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.criado_em:%d/%m/%Y %H:%M} — {self.get_status_display()}"
 
 
 # ---------- Perfil do usuário logado (com role!) ----------

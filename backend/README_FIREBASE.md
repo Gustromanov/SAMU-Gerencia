@@ -302,3 +302,67 @@ Com Opção A, o último `upload` ganha. Para evitar: use modo rede local (um se
 
 **Backup grande / lento**
 O SQLite comprime bem com gzip. Modifique `firebase_sync.py` para enviar `.sqlite3.gz` em vez de puro.
+
+---
+
+## ✅ Backup Firebase já integrado ao sistema (v1.1)
+
+> As opções A/B acima são referência. A partir da v1.1 **não precisa escrever código**: tudo está em **Perfil → Painel do Administrador → Backup Firebase**.
+
+### O que é enviado
+| Destino | Conteúdo |
+|---|---|
+| Storage `samu192/backups/samu192-AAAAMMDD-HHMMSS.sqlite3.gz` | Cópia consistente do `db.sqlite3` (API de backup do SQLite) compactada |
+| Firestore `samu192/snapshot` | Resumo em JSON: medicamentos + lotes + validade + níveis, veículos e KPIs (lido pelo app Android) |
+
+### Passo a passo (5 min)
+1. **Console Firebase** → crie o projeto → ative **Firestore Database** (modo produção) e **Storage**.
+2. **Configurações do projeto → Contas de serviço → Gerar nova chave privada** → baixa um `.json`.
+3. No SAMU 192 (admin): **Perfil → Backup Firebase**
+   - Envie o `.json` em *Chave da conta de serviço* (fica em `backend/secrets/`, fora do Git).
+   - Preencha o *Bucket* (aparece no topo da página Storage: `meu-projeto.appspot.com` ou `meu-projeto.firebasestorage.app`).
+   - **Desmarque "Modo simulado"** → **Salvar configurações** → **Testar conexão**.
+4. Clique **Enviar backup agora**. O histórico mostra data, origem, tamanho e destino `gs://…`.
+5. Publique as regras de `firebase/firestore.rules` e `firebase/storage.rules` (Console → Regras).
+
+### Modo simulado (padrão)
+Sem credenciais, os backups vão para `backend/backups_firebase_simulado/` (mantém os 10 últimos + `snapshot.json`). Serve para testar todo o fluxo sem internet.
+
+### Formas de disparar o backup
+| Gatilho | Como |
+|---|---|
+| Manual | Botão **Enviar backup agora** |
+| Automático | Marque *Backup automático* + intervalo em horas (roda enquanto o sistema estiver aberto) |
+| Ao fazer login | *Sincronizar ao fazer login* — qualquer login (PC ou APK) envia, no máx. a cada 10 min |
+| Terminal | `python manage.py firebase_backup` (`--se-vencido`, `--simulado`, `--testar`) |
+| Executável | `SAMU192.exe --backup-firebase` (só envia se o intervalo venceu) |
+
+### Agendar no sistema operacional (mesmo com o app fechado)
+```bat
+:: Windows — clique com o botão direito → Executar como administrador
+backend\agendar_backup_windows.bat
+:: remover:  schtasks /Delete /TN "SAMU192 Backup Firebase" /F
+```
+```bash
+# Linux — adiciona ao crontab (de hora em hora, respeita o intervalo do painel)
+bash backend/agendar_backup_linux.sh
+# remover:  crontab -l | grep -v '# SAMU192' | crontab -
+```
+
+### Restaurar a partir do Firebase
+Console → Storage → `samu192/backups/` → baixe o `.gz` → descompacte (7-Zip no Windows, `gunzip` no Linux) → **Perfil → Banco de dados → Restaurar** com o `.sqlite3`.
+
+### App Android lendo o Firebase
+1. Console → **Authentication → Método de login → E-mail/senha → Ativar** → aba **Usuários → Adicionar usuário** (um por profissional).
+2. Console → **Configurações do projeto → Seus apps → Web (`</>`)** → registre o app → copie o bloco `firebaseConfig`.
+3. No celular: **Consulta offline (Firebase)** → cole o `firebaseConfig` → entre com o e-mail/senha → o app baixa o `samu192/snapshot` e guarda uma cópia para ver mesmo sem internet.
+
+### Erros comuns
+| Mensagem | Solução |
+|---|---|
+| `Credenciais do Firebase não enviadas` | Envie o `.json` ou volte ao modo simulado |
+| `Chave privada inválida no JSON` | Baixe uma nova chave; não edite o arquivo |
+| `404 … bucket does not exist` | Bucket errado ou Storage não ativado |
+| `403 … permission` | A conta de serviço precisa do papel *Firebase Admin* (padrão da chave gerada) |
+| App Android: `Sem permissão para ler os dados` | Publique `firebase/firestore.rules` e confirme o login |
+

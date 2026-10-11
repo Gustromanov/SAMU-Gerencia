@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Cole em: Firebase Console → Storage → Regras → Publicar.
+// Os backups (.sqlite3.gz) contêm dados sensíveis: só o servidor (Admin SDK) e o console acessam.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{caminho=**} {
+      allow read, write: if false;
+    }
+  }
+}

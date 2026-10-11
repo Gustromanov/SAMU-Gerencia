@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7F1D1D">
+  <title>SAMU 192</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="marca">
+    <svg viewBox="0 0 128 128" aria-hidden="true"><rect x="4" y="4" width="120" height="120" rx="24" fill="#DC2626"/><g transform="translate(64,58)" fill="#fff"><polygon points="-32,0 -14,-10 -14,10"/><polygon points="32,0 14,-10 14,10"/><polygon points="-16,-28 0,-16 16,-28"/><polygon points="-16,28 0,16 16,28"/><polygon points="-28,-18 -12,-6 -28,6"/><polygon points="28,-18 12,-6 28,6"/><circle r="12" fill="#7F1D1D"/><rect x="-2" y="-9" width="4" height="18"/><rect x="-9" y="-2" width="18" height="4"/></g></svg>
+    <div><small>Estoque · Medicamentos · Frota</small><b>SAMU 192</b></div>
+  </div>
+
+  <!-- Reconexão automática -->
+  <div class="card oculto" id="auto" data-testid="auto-conectar">
+    <h1>Conectando…</h1>
+    <p id="auto-texto">Abrindo o servidor salvo.</p>
+    <button class="btn" id="auto-agora" data-testid="auto-agora"><span class="spin"></span><span id="auto-contagem">Entrar agora</span></button>
+    <button class="btn sec" id="auto-trocar" data-testid="auto-trocar">Trocar servidor</button>
+  </div>
+
+  <!-- Configuração do servidor -->
+  <div class="card" id="config" data-testid="tela-servidor">
+    <h1>Servidor da unidade</h1>
+    <p>Digite o IP do computador que está rodando o SAMU 192 (Perfil → Painel do admin → <b>Modo rede local</b> mostra o endereço). O celular precisa estar na mesma Wi-Fi.</p>
+    <div class="linha">
+      <div><label for="host">IP ou endereço</label><input id="host" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="192.168.0.10" data-testid="input-host"></div>
+      <div><label for="porta">Porta</label><input id="porta" inputmode="numeric" value="8765" data-testid="input-porta"></div>
+    </div>
+    <div class="chips" id="recentes"></div>
+    <button class="btn" id="conectar" data-testid="btn-conectar">Testar e conectar</button>
+    <div class="msg" id="msg" data-testid="msg-conexao"></div>
+  </div>
+
+  <div class="card">
+    <h2>Sem acesso ao servidor?</h2>
+    <p>Consulte o estoque e a frota pela última cópia enviada ao Firebase (precisa de internet só na primeira vez).</p>
+    <a href="offline.html"><button class="btn sec" data-testid="btn-modo-offline">Consulta offline (Firebase)</button></a>
+  </div>
+
+  <div class="rodape">SAMU 192 · Guanambi/BA · Desenvolvido por Gustavo Batista</div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const CHAVE = "samu_servidor", RECENTES = "samu_recentes";
+let cancelado = false;
+
+function mostrar(texto, tipo = "erro") {
+  const m = $("#msg"); m.className = `msg on ${tipo}`; m.textContent = texto;
+}
+
+function normalizar(host, porta) {
+  let h = host.trim().replace(/\/+$/, "");
+  if (!h) return null;
+  if (!/^https?:\/\//i.test(h)) h = "http://" + h;
+  try {
+    const u = new URL(h);
+    if (!u.port && porta && u.protocol === "http:") u.port = porta;
+    return (u.origin + u.pathname).replace(/\/+$/, "");
+  } catch { return null; }
+}
+
+async function testar(base) {
+  for (const prefixo of ["", "/api"]) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    try {
+      const r = await fetch(`${base}${prefixo}/healthz/`, { signal: ctrl.signal, cache: "no-store" });
+      const d = r.ok ? await r.json().catch(() => ({})) : {};
+      if (d.status === "ok") return base + prefixo;
+    } catch (e) { /* tenta o próximo prefixo */ } finally { clearTimeout(t); }
+  }
+  return null;
+}
+
+function salvarRecente(base) {
+  const lista = [base, ...JSON.parse(localStorage.getItem(RECENTES) || "[]").filter((x) => x !== base)].slice(0, 4);
+  localStorage.setItem(RECENTES, JSON.stringify(lista));
+}
+
+function desenharRecentes() {
+  const lista = JSON.parse(localStorage.getItem(RECENTES) || "[]");
+  $("#recentes").innerHTML = "";
+  lista.forEach((b, i) => {
+    const c = document.createElement("button");
+    c.className = "chip"; c.textContent = b.replace(/^https?:\/\//, ""); c.dataset.testid = `recente-${i}`;
+    c.onclick = () => conectar(b);
+    $("#recentes").appendChild(c);
+  });
+}
+
+async function conectar(base) {
+  const btn = $("#conectar");
+  btn.disabled = true; btn.textContent = "Testando conexão…";
+  mostrar(`Procurando o SAMU 192 em ${base}…`, "info");
+  const ok = await testar(base);
+  btn.disabled = false; btn.textContent = "Testar e conectar";
+  if (!ok) {
+    mostrar(`Não foi possível acessar ${base}. Confira se o SAMU 192 está aberto no computador da unidade, se o IP/porta estão certos e se o celular está na mesma Wi-Fi.`);
+    return false;
+  }
+  localStorage.setItem(CHAVE, ok);
+  salvarRecente(ok);
+  mostrar("Conectado! Abrindo o login…", "ok");
+  location.href = `${ok}/login/`;
+  return true;
+}
+
+$("#conectar").onclick = () => {
+  const base = normalizar($("#host").value, $("#porta").value.trim());
+  if (!base) return mostrar("Digite um IP válido, por exemplo 192.168.0.10");
+  conectar(base);
+};
+$("#host").addEventListener("keydown", (e) => e.key === "Enter" && $("#conectar").click());
+
+function autoConectar(base) {
+  $("#auto").classList.remove("oculto");
+  $("#config").classList.add("oculto");
+  $("#auto-texto").textContent = `Servidor salvo: ${base.replace(/^https?:\/\//, "")}`;
+  let n = 3;
+  const tick = setInterval(() => {
+    if (cancelado) return clearInterval(tick);
+    $("#auto-contagem").textContent = `Entrando em ${n}s…`;
+    if (n-- <= 0) { clearInterval(tick); entrarSalvo(base); }
+  }, 1000);
+}
+
+async function entrarSalvo(base) {
+  cancelado = true;
+  $("#auto").classList.add("oculto");
+  $("#config").classList.remove("oculto");
+  const u = new URL(base);
+  $("#host").value = u.hostname + u.pathname.replace(/\/$/, "");
+  $("#porta").value = u.port || "8765";
+  await conectar(base);
+}
+
+$("#auto-agora").onclick = () => entrarSalvo(localStorage.getItem(CHAVE));
+$("#auto-trocar").onclick = () => {
+  cancelado = true;
+  $("#auto").classList.add("oculto");
+  $("#config").classList.remove("oculto");
+  $("#host").focus();
+};
+
+desenharRecentes();
+const salvo = localStorage.getItem(CHAVE);
+if (salvo && !location.search.includes("trocar")) autoConectar(salvo);
+</script>
+</body>
+</html>

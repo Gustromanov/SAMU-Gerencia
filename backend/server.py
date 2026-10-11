@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "samu.settings")
+os.environ.setdefault("SAMU_SCRIPT_NAME", "/api")
 
 import django  # noqa: E402
 django.setup()

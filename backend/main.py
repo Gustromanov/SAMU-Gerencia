@@ -67,26 +67,49 @@ def _prepare_database() -> None:
         call_command("seed_samu", verbosity=1)
 
 
+# 0.0.0.0 permite que celulares/APK e outros PCs da rede acessem; use SAMU_HOST=127.0.0.1 para só local.
+HOST = os.environ.get("SAMU_HOST", "0.0.0.0")
+ICONE = Path(os.environ.get("SAMU_ASSETS_BASE", BASE_DIR)) / "assets" / "icons" / "samu192.png"
+
+
 def _find_free_port(preferred: int = 8765) -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
-            s.bind(("127.0.0.1", preferred))
+            s.bind((HOST, preferred))
             return preferred
         except OSError:
-            s.bind(("127.0.0.1", 0))
+            s.bind((HOST, 0))
             return s.getsockname()[1]
 
 
 def _run_django(port: int) -> None:
+    from socketserver import ThreadingMixIn
+    from wsgiref.simple_server import WSGIServer, make_server
+
     from django.core.wsgi import get_wsgi_application
-    from wsgiref.simple_server import make_server
+
+    class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+        daemon_threads = True
 
     application = get_wsgi_application()
-    with make_server("127.0.0.1", port, application) as server:
+    with make_server(HOST, port, application, server_class=ThreadingWSGIServer) as server:
         server.serve_forever()
 
 
+def _backup_e_sair() -> None:
+    """Modo usado pelo Agendador do Windows/cron: `SAMU192.exe --backup-firebase`."""
+    _prepare_database()
+    try:
+        call_command("firebase_backup", "--se-vencido")
+    except Exception as exc:
+        print(f"[SAMU 192] {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
+    if "--backup-firebase" in sys.argv:
+        _backup_e_sair()
+        return
     _prepare_database()
 
     port = _find_free_port(8765)
@@ -120,7 +143,12 @@ def main() -> None:
         height=900,
         min_size=(1024, 720),
     )
-    webview.start()
+    # private_mode=False mantém o login ("lembrar de mim") entre aberturas do app.
+    webview.start(
+        private_mode=False,
+        storage_path=str(BASE_DIR / ".webview"),
+        icon=str(ICONE) if ICONE.exists() else None,
+    )
 
 
 if __name__ == "__main__":

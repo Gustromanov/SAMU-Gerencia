@@ -206,44 +206,63 @@ Resultado:
 
 > ⚠️ **Não há cross-build**. Para gerar `.exe` precisa rodar no Windows. Para `.app`, no macOS.
 
-### Ícone oficial
-O arquivo `static/core/samu-logo.svg` serve como logo. Para o executável use um `.ico` (Windows) ou `.icns` (macOS). Para gerar:
+### Atalhos prontos
+| Sistema | Comando | Resultado |
+|---|---|---|
+| Windows | duplo clique em `backend\build_windows.bat` | `dist\SAMU192\SAMU192.exe` |
+| Linux | `bash backend/build_desktop.sh` | `dist/SAMU192/SAMU192` |
+| macOS | `bash backend/build_desktop.sh` | `dist/SAMU 192.app` |
+
+> No Linux instale antes: `sudo apt install libegl1 libxkbcommon-x11-0 libxcb-cursor0` (Qt WebEngine usado pelo pywebview).
+
+### Ícone oficial (já incluso)
+Os ícones gerados a partir do SVG oficial já estão no projeto e o `samu192.spec` usa automaticamente:
+- `assets/icons/samu192.ico` → Windows (16, 24, 32, 48, 64, 128, 256 px — os pequenos usam o `favicon.svg`, mais legível)
+- `assets/icons/samu192.icns` → macOS
+- `assets/icons/samu192.png` → ícone da janela no Linux
+
+Mudou o logo? Edite `static/core/samu-logo.svg` / `favicon.svg` e regere tudo (inclusive os do Android):
 ```bash
-# a partir do SVG → PNG → ICO
-pip install cairosvg pillow
-python -c "import cairosvg; cairosvg.svg2png(url='static/core/samu-logo.svg', write_to='samu-icon.png', output_width=256, output_height=256)"
-# Converte PNG para ICO (vários tamanhos)
-python -c "from PIL import Image; i=Image.open('samu-icon.png'); i.save('samu.ico', sizes=[(16,16),(32,32),(48,48),(128,128),(256,256)])"
+pip install cairosvg pillow      # Linux: sudo apt install libcairo2
+python gerar_icones.py
 ```
-Depois edite `samu192.spec` e troque `icon=None` por `icon='samu.ico'` (ou `'samu.icns'` no mac).
+
+### Build automático no GitHub (sem instalar nada)
+O repositório já tem `.github/workflows/build-desktop.yml`:
+1. Clique em **Save to GitHub** no Emergent (ou faça `git push`).
+2. No GitHub abra **Actions → Build desktop (Windows + Linux)**. Ele roda a cada push em `backend/**` (ou clique em **Run workflow**).
+3. Ao terminar, baixe em **Artifacts**: `SAMU192-windows` (.zip com o .exe) e `SAMU192-linux` (.tar.gz).
+4. Criou uma tag `v1.1.0` (`git tag v1.1.0 && git push --tags`)? Os arquivos vão direto para a página **Releases**.
+
+### Executável na rede local
+O app desktop agora escuta em `0.0.0.0:8765`, então celulares (APK) e outros PCs da mesma Wi-Fi acessam o mesmo banco. O Windows pode perguntar sobre o Firewall na 1ª vez — clique **Permitir (redes privadas)**. Para só uso local: `set SAMU_HOST=127.0.0.1` antes de abrir.
+
+### Backup Firebase com o executável
+`SAMU192.exe --backup-firebase` envia o backup (se o intervalo do painel venceu) e fecha. O `agendar_backup_windows.bat` (copiado junto do .exe pelo GitHub Actions) cria a tarefa no Agendador. Detalhes em `README_FIREBASE.md`.
 
 ---
 
 ## 📱 Compilar como app nativo Android (.apk)
 
-O código é Django web — para rodar como app Android há duas estratégias:
+O projeto Capacitor **já está pronto** em `android-app/` (guia completo: `android-app/README.md`).
 
-### Opção A — WebView wrapper (mais simples) via Capacitor
-1. Instale Node.js 20+ e Android Studio (com Android SDK 33+ e JDK 17).
-2. Crie o wrapper:
-   ```bash
-   npm init @capacitor/app@latest samu-android
-   cd samu-android
-   npm install @capacitor/android @capacitor/core
-   npx cap add android
-   ```
-3. Edite `capacitor.config.json`:
-   ```json
-   {
-     "appId": "br.gov.samu.estoque",
-     "appName": "SAMU 192",
-     "webDir": "www",
-     "server": { "url": "http://IP_DO_SERVIDOR:8765", "cleartext": true }
-   }
-   ```
-   Troque `IP_DO_SERVIDOR` pelo IP real da máquina que roda o Django (modo rede local).
-4. `npx cap open android` → menu Build → Build APK (ou AAB).
-5. Instale o `.apk` gerado em `android/app/build/outputs/apk/release/`.
+### Opção A — App Capacitor pronto (recomendado)
+- Tela inicial pede o **IP do servidor da unidade** (salvo no aparelho, reconecta sozinho).
+- Login normal do SAMU 192 → o servidor envia o backup ao Firebase ao entrar (se ativado no painel).
+- **Consulta offline**: sem acesso ao servidor, entra com e-mail/senha do Firebase e vê a última cópia do estoque/frota.
+
+**Gerar o APK sem instalar nada:** faça push para o GitHub → **Actions → Build APK Android** → baixe `SAMU192-android-apk` em Artifacts → copie o `.apk` para o celular e instale (permita "fontes desconhecidas").
+
+**Gerar na sua máquina** (Node 20 + JDK 17 + Android Studio):
+```bash
+cd android-app
+npm install
+npx cap add android
+npx capacitor-assets generate --android   # ícones oficiais (assets/)
+npx cap sync android
+npx cap open android                      # Build → Build APK(s)
+```
+> Se o app não abrir o servidor HTTP, confira se `android:usesCleartextTraffic="true"` está na tag `<application>` de `android/app/src/main/AndroidManifest.xml` (o workflow já faz isso).
 
 ### Opção B — Chaquopy (Django embutido no APK)
 Para rodar Django **dentro do APK** (totalmente offline no celular):

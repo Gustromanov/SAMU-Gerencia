@@ -1,0 +1,14 @@
+{
+  "appId": "br.gov.samu192.estoque",
+  "appName": "SAMU 192",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#7F1D1D"
+  }
+}

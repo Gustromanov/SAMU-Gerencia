@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Cole em: Firebase Console → Firestore Database → Regras → Publicar.
+// O servidor SAMU 192 grava via Admin SDK (ignora estas regras).
+// O app Android só LÊ o snapshot, e apenas com usuário logado no Firebase Auth.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /samu192/{documento} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /{caminho=**} {
+      allow read, write: if false;
+    }
+  }
+}

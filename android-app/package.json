@@ -1,0 +1,21 @@
+{
+  "name": "samu192-android",
+  "version": "1.1.0",
+  "private": true,
+  "description": "SAMU 192 — app Android (Capacitor) que conecta ao servidor da unidade e consulta o backup Firebase offline",
+  "scripts": {
+    "add:android": "cap add android",
+    "icones": "capacitor-assets generate --android",
+    "sync": "cap sync android",
+    "abrir": "cap open android",
+    "apk": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.0"
+  }
+}

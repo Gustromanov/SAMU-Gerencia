@@ -45,6 +45,7 @@ urlpatterns = [
     path("perfil/db/backup/", views.BackupDBView.as_view(), name="db_backup"),
     path("perfil/db/restaurar/", views.RestaurarDBView.as_view(), name="db_restaurar"),
     path("perfil/db/apagar/", views.ApagarDBView.as_view(), name="db_apagar"),
+    path("perfil/firebase/", views.FirebaseView.as_view(), name="firebase"),
 
     # APIs JSON
     path("api/busca/medicamentos/", views.BuscaMedicamentosJson.as_view(), name="api_busca_medicamentos"),

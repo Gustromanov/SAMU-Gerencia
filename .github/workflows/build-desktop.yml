@@ -1,0 +1,77 @@
+name: Build desktop (Windows + Linux)
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/build-desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.nome }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            nome: windows
+          - os: ubuntu-22.04
+            nome: linux
+    defaults:
+      run:
+        working-directory: backend
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Bibliotecas de sistema (Linux / Qt WebEngine)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6
+
+      - name: Dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install django==5.1.4 whitenoise==6.8.2 openpyxl==3.1.5 reportlab==4.2.5 \
+            "firebase-admin>=6.5" pillow "pyinstaller>=6.10"
+          if [ "$RUNNER_OS" = "Linux" ]; then pip install "pywebview[qt]>=5.1"; else pip install "pywebview>=5.1"; fi
+
+      - name: Preparar Django
+        run: |
+          python manage.py migrate --noinput
+          python manage.py collectstatic --noinput
+
+      - name: Empacotar (PyInstaller)
+        run: pyinstaller samu192.spec --clean --noconfirm
+
+      - name: Compactar
+        run: |
+          cp agendar_backup_windows.bat agendar_backup_linux.sh dist/SAMU192/
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then 7z a ../SAMU192-windows.zip SAMU192; else tar -czf ../SAMU192-linux.tar.gz SAMU192; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SAMU192-${{ matrix.nome }}
+          path: backend/SAMU192-*
+          retention-days: 30
+
+      - name: Publicar na Release (somente tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: backend/SAMU192-*

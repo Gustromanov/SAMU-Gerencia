@@ -101,7 +101,7 @@
     const charts = {};
 
     async function carregar(id, pesquisa, tipo, dias) {
-        const url = `/api/api/relatorio/?pesquisa=${pesquisa}&dias=${dias || 30}`;
+        const url = `{% url 'api_relatorio' %}?pesquisa=${pesquisa}&dias=${dias || 30}`;
         const r = await fetch(url); const d = await r.json();
         const canvas = document.getElementById('canvas-' + id);
         if (charts[id]) charts[id].destroy();

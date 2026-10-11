@@ -86,3 +86,15 @@ android-sdk/
 credentials.json
 *.key
 .credentials
+
+# SAMU 192 — segredos, backups locais e builds
+backend/secrets/
+backend/backups_firebase_simulado/
+backend/firebase_backup.log
+backend/.venv-desktop/
+backend/.webview/
+backend/build/
+android-app/node_modules/
+android-app/android/
+android-app/*.apk
+

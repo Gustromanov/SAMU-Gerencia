@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7F1D1D">
+  <title>SAMU 192 · Consulta offline</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="marca">
+    <svg viewBox="0 0 128 128" aria-hidden="true"><rect x="4" y="4" width="120" height="120" rx="24" fill="#DC2626"/><g transform="translate(64,58)" fill="#fff"><polygon points="-32,0 -14,-10 -14,10"/><polygon points="32,0 14,-10 14,10"/><polygon points="-16,-28 0,-16 16,-28"/><polygon points="-16,28 0,16 16,28"/><polygon points="-28,-18 -12,-6 -28,6"/><polygon points="28,-18 12,-6 28,6"/><circle r="12" fill="#7F1D1D"/><rect x="-2" y="-9" width="4" height="18"/><rect x="-9" y="-2" width="18" height="4"/></g></svg>
+    <div><small>Consulta offline · Firebase</small><b>SAMU 192</b></div>
+  </div>
+
+  <!-- 1. Configuração do projeto Firebase -->
+  <div class="card oculto" id="tela-config" data-testid="tela-firebase-config">
+    <h1>Conectar ao Firebase</h1>
+    <p>No console do Firebase: <b>Configurações do projeto → Seus apps → Web (&lt;/&gt;)</b>. Copie o bloco <code>firebaseConfig</code> inteiro e cole abaixo.</p>
+    <textarea id="cfg-texto" placeholder='const firebaseConfig = {&#10;  apiKey: "AIza…",&#10;  authDomain: "projeto.firebaseapp.com",&#10;  projectId: "projeto",&#10;  ...&#10;};' data-testid="input-firebase-config"></textarea>
+    <button class="btn" id="cfg-salvar" data-testid="btn-salvar-config">Salvar configuração</button>
+    <div class="msg" id="cfg-msg"></div>
+  </div>
+
+  <!-- 2. Login Firebase Auth -->
+  <div class="card oculto" id="tela-login" data-testid="tela-firebase-login">
+    <h1>Entrar</h1>
+    <p>Use o e-mail e a senha criados em <b>Authentication → Usuários</b> no Firebase. Ao entrar, o app sincroniza a última cópia do estoque.</p>
+    <label for="email">E-mail</label><input id="email" type="email" autocomplete="username" data-testid="input-fb-email">
+    <label for="senha">Senha</label><input id="senha" type="password" autocomplete="current-password" data-testid="input-fb-senha">
+    <button class="btn" id="entrar" data-testid="btn-fb-entrar">Entrar e sincronizar</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+
+  <!-- 3. Dados -->
+  <div id="tela-dados" class="oculto" data-testid="tela-dados">
+    <div class="card">
+      <div class="msg" id="dados-msg"></div>
+      <h2 id="atualizado" data-testid="snapshot-atualizado">—</h2>
+      <div class="kpis" id="kpis"></div>
+      <label for="busca">Buscar medicamento</label>
+      <input id="busca" placeholder="Ex.: dipirona" data-testid="input-busca">
+      <div id="lista"></div>
+    </div>
+    <div class="card"><h2>Frota</h2><div id="frota"></div></div>
+    <div class="acoes">
+      <button class="btn" id="atualizar" data-testid="btn-atualizar">Atualizar</button>
+      <button class="btn sec" id="sair" data-testid="btn-fb-sair">Sair</button>
+    </div>
+  </div>
+
+  <div class="acoes" style="margin-top:16px">
+    <a href="index.html?trocar=1"><button class="btn ghost" data-testid="btn-voltar-servidor">Voltar ao servidor</button></a>
+    <button class="btn ghost" id="reconfigurar" data-testid="btn-reconfigurar">Trocar projeto</button>
+  </div>
+  <div class="rodape">Os dados aqui são somente leitura. Entradas e saídas são feitas no servidor da unidade.</div>
+</div>
+
+<script type="module">
+const V = "10.12.2";
+const CFG = "samu_firebase_cfg", CACHE = "samu_snapshot";
+const $ = (s) => document.querySelector(s);
+let fb = null, snapshot = null;
+
+const tela = (id) => ["#tela-config", "#tela-login", "#tela-dados"].forEach((t) => $(t).classList.toggle("oculto", t !== id));
+const aviso = (sel, texto, tipo = "erro") => { const m = $(sel); m.className = `msg on ${tipo}`; m.textContent = texto; };
+const limpar = (sel) => { $(sel).className = "msg"; };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function lerConfig(txt) {
+  const i = txt.indexOf("{"), j = txt.lastIndexOf("}");
+  if (i < 0 || j < i) throw new Error("Cole o objeto firebaseConfig completo, incluindo { }.");
+  let s = txt.slice(i, j + 1), o;
+  try { o = JSON.parse(s); } catch {
+    s = s.replace(/'/g, '"').replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g, '$1"$2":').replace(/,\s*}/g, "}");
+    o = JSON.parse(s);
+  }
+  if (!o.apiKey || !o.projectId) throw new Error("Faltam apiKey e/ou projectId na configuração.");
+  return o;
+}
+
+async function sdk() {
+  if (fb) return fb;
+  const base = `https://www.gstatic.com/firebasejs/${V}`;
+  const [app, auth, fs] = await Promise.all([
+    import(`${base}/firebase-app.js`), import(`${base}/firebase-auth.js`), import(`${base}/firebase-firestore.js`),
+  ]);
+  const a = app.getApps()[0] || app.initializeApp(JSON.parse(localStorage.getItem(CFG)));
+  fb = { auth, fs, authI: auth.getAuth(a), db: fs.getFirestore(a) };
+  return fb;
+}
+
+const ERROS = {
+  "auth/invalid-credential": "E-mail ou senha incorretos.",
+  "auth/wrong-password": "E-mail ou senha incorretos.",
+  "auth/user-not-found": "Usuário não encontrado no Firebase.",
+  "auth/invalid-email": "E-mail inválido.",
+  "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos.",
+  "auth/network-request-failed": "Sem internet no momento.",
+  "permission-denied": "Sem permissão para ler os dados. Confira as regras do Firestore (README_FIREBASE.md).",
+};
+const traduzir = (e) => ERROS[e?.code] || e?.message || "Erro inesperado.";
+
+function tagValidade(n) {
+  if (["Vencido", "Muito próximo"].includes(n)) return "r";
+  if (["Próximo", "Controlado"].includes(n)) return "a";
+  return n === "Distante" ? "v" : "";
+}
+
+function render(offline = false) {
+  if (!snapshot) return;
+  tela("#tela-dados");
+  const dt = new Date(snapshot.gerado_em);
+  $("#atualizado").textContent = `Cópia de ${dt.toLocaleDateString("pt-BR")} às ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (offline) aviso("#dados-msg", "Sem conexão com o Firebase — exibindo a última cópia salva neste aparelho.", "info"); else limpar("#dados-msg");
+  const k = snapshot.kpis || {};
+  $("#kpis").innerHTML = [["Medicamentos", k.medicamentos], ["Lotes", k.lotes], ["Unidades", k.unidades]]
+    .map(([n, v]) => `<div class="kpi"><b>${v ?? 0}</b><span>${n}</span></div>`).join("");
+  desenharLista();
+  $("#frota").innerHTML = (snapshot.veiculos || []).map((v) => `
+    <div class="lote"><span><b>${esc(v.codigo)}</b> · ${esc(v.modelo)} (${esc(v.ano)})<br><small class="muted">${esc(v.tipo)}</small></span>
+    <span class="tag ${v.status === "Normal" ? "v" : v.status === "Inativo" ? "r" : "a"}">${esc(v.status)}</span></div>`).join("")
+    || '<p class="muted">Nenhum veículo.</p>';
+}
+
+function desenharLista() {
+  const q = $("#busca").value.trim().toLowerCase();
+  const meds = (snapshot.medicamentos || []).filter((m) => !q || m.nome.toLowerCase().includes(q));
+  $("#lista").innerHTML = meds.map((m, i) => `
+    <details class="item" data-testid="med-${i}">
+      <summary><span><b>${esc(m.nome)}</b><small>${esc(m.tipo)} · ${esc(m.forma)} · ${m.lotes.length} lote(s)</small></span><span class="tag">${m.total} un</span></summary>
+      ${m.lotes.map((l) => `<div class="lote"><span>Lote <b>${esc(l.codigo)}</b> · ${l.quantidade} un<br><small class="muted">Validade ${new Date(l.validade + "T12:00").toLocaleDateString("pt-BR")} · estoque ${esc(l.estoque)}</small></span>
+      <span class="tag ${tagValidade(l.validade_nivel)}">${esc(l.validade_nivel)}${l.dias <= 60 ? ` (${l.dias}d)` : ""}</span></div>`).join("") || '<div class="lote muted">Sem lotes</div>'}
+    </details>`).join("") || '<p class="muted" style="margin-top:12px">Nenhum medicamento encontrado.</p>';
+}
+
+async function sincronizar() {
+  const { fs, db } = await sdk();
+  const doc = await fs.getDoc(fs.doc(db, "samu192", "snapshot"));
+  if (!doc.exists()) {
+    tela("#tela-dados");
+    aviso("#dados-msg", "Ainda não há cópia no Firebase. No computador da unidade: Perfil → Backup Firebase → desative o modo simulado e clique em Enviar backup agora.", "info");
+    return;
+  }
+  snapshot = doc.data();
+  localStorage.setItem(CACHE, JSON.stringify(snapshot));
+  render(false);
+}
+
+async function iniciar() {
+  const cache = localStorage.getItem(CACHE);
+  if (cache) snapshot = JSON.parse(cache);
+  if (!localStorage.getItem(CFG)) return tela("#tela-config");
+  try {
+    const { auth, authI } = await sdk();
+    auth.onAuthStateChanged(authI, async (user) => {
+      if (!user) return tela("#tela-login");
+      try { await sincronizar(); } catch (e) { snapshot ? render(true) : (tela("#tela-dados"), aviso("#dados-msg", traduzir(e))); }
+    });
+  } catch (e) {
+    if (snapshot) render(true);
+    else { tela("#tela-login"); aviso("#login-msg", "Sem internet para carregar o Firebase e nenhuma cópia salva neste aparelho ainda."); }
+  }
+}
+
+$("#cfg-salvar").onclick = () => {
+  try {
+    localStorage.setItem(CFG, JSON.stringify(lerConfig($("#cfg-texto").value)));
+    location.reload();
+  } catch (e) { aviso("#cfg-msg", e.message); }
+};
+
+$("#entrar").onclick = async () => {
+  const btn = $("#entrar"); btn.disabled = true; btn.textContent = "Entrando…";
+  try {
+    const { auth, authI } = await sdk();
+    await auth.signInWithEmailAndPassword(authI, $("#email").value.trim(), $("#senha").value);
+  } catch (e) { aviso("#login-msg", traduzir(e)); }
+  btn.disabled = false; btn.textContent = "Entrar e sincronizar";
+};
+
+$("#atualizar").onclick = async () => {
+  try { await sincronizar(); aviso("#dados-msg", "Dados sincronizados.", "ok"); } catch (e) { aviso("#dados-msg", traduzir(e)); }
+};
+$("#sair").onclick = async () => { const { auth, authI } = await sdk(); await auth.signOut(authI); };
+$("#reconfigurar").onclick = () => {
+  if (!confirm("Apagar a configuração do Firebase e a cópia salva neste aparelho?")) return;
+  localStorage.removeItem(CFG); localStorage.removeItem(CACHE); location.reload();
+};
+$("#busca").addEventListener("input", desenharLista);
+
+iniciar();
+</script>
+</body>
+</html>

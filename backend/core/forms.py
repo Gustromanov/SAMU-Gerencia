@@ -307,6 +307,43 @@ class EditarContaForm(forms.ModelForm):
         return perfil
 
 
+_CHK = "w-4 h-4 accent-red-600 rounded"
+
+
+class FirebaseConfigForm(forms.ModelForm):
+    credenciais = forms.FileField(
+        required=False,
+        widget=forms.FileInput(attrs={"accept": ".json,application/json", "class": "block w-full text-xs mt-2",
+                                      "data-testid": "fb-credenciais"}),
+    )
+
+    class Meta:
+        model = models.Configuracao
+        fields = ("firebase_bucket", "firebase_simulado", "firebase_auto", "firebase_intervalo_horas", "firebase_sync_login")
+        widgets = {
+            "firebase_bucket": forms.TextInput(attrs={"class": _c(), "placeholder": "seu-projeto.appspot.com", "data-testid": "fb-bucket"}),
+            "firebase_simulado": forms.CheckboxInput(attrs={"class": _CHK, "data-testid": "fb-simulado"}),
+            "firebase_auto": forms.CheckboxInput(attrs={"class": _CHK, "data-testid": "fb-auto"}),
+            "firebase_intervalo_horas": forms.NumberInput(attrs={"class": _c(), "min": 1, "max": 720, "data-testid": "fb-intervalo"}),
+            "firebase_sync_login": forms.CheckboxInput(attrs={"class": _CHK, "data-testid": "fb-sync-login"}),
+        }
+
+    def clean_firebase_bucket(self):
+        return (self.cleaned_data.get("firebase_bucket") or "").strip().removeprefix("gs://").strip("/")
+
+    def clean_firebase_intervalo_horas(self):
+        h = self.cleaned_data.get("firebase_intervalo_horas") or 0
+        if not 1 <= h <= 720:
+            raise forms.ValidationError("Intervalo deve ficar entre 1 e 720 horas.")
+        return h
+
+    def clean_credenciais(self):
+        arq = self.cleaned_data.get("credenciais")
+        if arq and arq.size > 64 * 1024:
+            raise forms.ValidationError("Arquivo grande demais para uma chave de serviço.")
+        return arq
+
+
 class ConfiguracaoForm(forms.ModelForm):
     class Meta:
         model = models.Configuracao

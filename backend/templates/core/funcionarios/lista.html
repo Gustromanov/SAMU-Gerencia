@@ -112,7 +112,7 @@
                 row.classList.remove('hidden');
                 btn.classList.add('open');
                 if (!cache[id]) {
-                    const r = await fetch(`/api/api/funcionarios/${id}/historico/`);
+                    const r = await fetch("{% url 'api_historico_funcionario' 0 %}".replace('/0/', `/${id}/`));
                     const d = await r.json(); cache[id] = d;
                     renderHist(id, d);
                 }

@@ -26,6 +26,7 @@ from django.views import View
 from django.views.generic import RedirectView, TemplateView
 
 from . import exportacao
+from . import firebase_sync
 from . import forms as core_forms
 from . import models
 from .permissions import RoleRequiredMixin, perfil_do
@@ -72,6 +73,7 @@ class LoginView(DjangoLoginView):
             user=self.request.user,
             defaults={"funcao": "ADMINISTRADOR" if self.request.user.is_superuser else "AUXILIAR"},
         )
+        firebase_sync.sincronizar_ao_logar(self.request.user)
         return response
 
     def get_success_url(self) -> str:
@@ -596,6 +598,10 @@ class RelatorioJson(LoginRequiredMixin, View):
     def get(self, request):
         cfg = models.Configuracao.obter()
         pesquisa = request.GET.get("pesquisa", "tipo")
+        perfil = perfil_do(request.user)
+        frota = pesquisa.startswith("veic_")
+        if perfil and ((frota and not perfil.pode_ver_veiculos) or (not frota and not perfil.pode_ver_medicamentos)):
+            return JsonResponse({"erro": "Acesso negado para esta pesquisa."}, status=403)
         intervalo = int(request.GET.get("dias", cfg.intervalo_dias_padrao) or cfg.intervalo_dias_padrao)
 
         labels: list[str] = []
@@ -657,16 +663,27 @@ class RelatorioJson(LoginRequiredMixin, View):
 class PerfilView(LoginRequiredMixin, View):
     template_name = "core/perfil.html"
 
+    @staticmethod
+    def _contexto(perfil, form) -> dict:
+        ctx = {"form": form, "perfil": perfil, "pagina_ativa": "perfil", "contas": None, "cfg_form": None, "ips_rede": []}
+        if perfil.is_admin:
+            cfg = models.Configuracao.obter()
+            ctx.update({
+                "contas": models.Perfil.objects.select_related("user"),
+                "cfg_form": core_forms.ConfiguracaoForm(instance=cfg),
+                "ips_rede": _detectar_ips(),
+                "fb_form": core_forms.FirebaseConfigForm(instance=cfg),
+                "fb_cfg": cfg,
+                "fb_credenciais": firebase_sync.credenciais_info(),
+                "fb_proximo": firebase_sync.proximo_backup(cfg),
+                "fb_historico": models.BackupFirebase.objects.select_related("usuario")[:10],
+                "fb_pasta_simulada": firebase_sync.pasta_simulada(),
+            })
+        return ctx
+
     def get(self, request):
         perfil, _ = models.Perfil.objects.get_or_create(user=request.user)
-        form = core_forms.PerfilForm(instance=perfil)
-        contas = models.Perfil.objects.select_related("user") if perfil.is_admin else None
-        cfg_form = core_forms.ConfiguracaoForm(instance=models.Configuracao.obter()) if perfil.is_admin else None
-        ips = _detectar_ips() if perfil.is_admin else []
-        return render(request, self.template_name, {
-            "form": form, "perfil": perfil, "contas": contas, "cfg_form": cfg_form,
-            "ips_rede": ips, "pagina_ativa": "perfil",
-        })
+        return render(request, self.template_name, self._contexto(perfil, core_forms.PerfilForm(instance=perfil)))
 
     def post(self, request):
         perfil, _ = models.Perfil.objects.get_or_create(user=request.user)
@@ -675,13 +692,49 @@ class PerfilView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, "Perfil atualizado.")
             return redirect("perfil")
-        contas = models.Perfil.objects.select_related("user") if perfil.is_admin else None
-        cfg_form = core_forms.ConfiguracaoForm(instance=models.Configuracao.obter()) if perfil.is_admin else None
-        ips = _detectar_ips() if perfil.is_admin else []
-        return render(request, self.template_name, {
-            "form": form, "perfil": perfil, "contas": contas, "cfg_form": cfg_form,
-            "ips_rede": ips, "pagina_ativa": "perfil",
-        })
+        return render(request, self.template_name, self._contexto(perfil, form))
+
+
+class FirebaseView(RoleRequiredMixin, View):
+    allowed_roles = ("ADMINISTRADOR",)
+
+    def post(self, request):
+        acao = request.POST.get("acao", "salvar")
+        try:
+            if acao == "salvar":
+                self._salvar(request)
+            elif acao == "enviar":
+                self._enviar(request)
+            elif acao == "testar":
+                messages.success(request, firebase_sync.testar_conexao())
+            elif acao == "remover":
+                firebase_sync.remover_credenciais()
+                messages.success(request, "Credenciais do Firebase removidas deste computador.")
+        except Exception as exc:
+            messages.error(request, f"Firebase: {exc}")
+        return redirect(reverse("perfil") + "#firebase")
+
+    def _salvar(self, request):
+        form = core_forms.FirebaseConfigForm(request.POST, request.FILES, instance=models.Configuracao.obter())
+        if not form.is_valid():
+            messages.error(request, "Erro nas configurações do Firebase: " + "; ".join(
+                f"{', '.join(v)}" for v in form.errors.values()))
+            return
+        arquivo = form.cleaned_data.get("credenciais")
+        if arquivo:
+            info = firebase_sync.salvar_credenciais(arquivo.read())
+            messages.info(request, f"Credenciais do projeto {info['project_id']} salvas.")
+        form.save()
+        messages.success(request, "Configurações de backup Firebase salvas.")
+
+    def _enviar(self, request):
+        r = firebase_sync.enviar_backup("MANUAL", request.user)
+        if r is None:
+            messages.warning(request, "Já existe um backup em andamento. Aguarde alguns segundos.")
+        elif r.status == "SUCESSO":
+            messages.success(request, f"Backup enviado ({r.get_modo_display()}): {r.destino}")
+        else:
+            messages.error(request, f"Falha no backup: {r.mensagem}")
 
 
 class EditarContaView(RoleRequiredMixin, View):
@@ -759,6 +812,10 @@ class RestaurarDBView(RoleRequiredMixin, View):
         if not arquivo:
             messages.error(request, "Nenhum arquivo enviado.")
             return redirect("perfil")
+        if arquivo.read(16) != b"SQLite format 3\x00":
+            messages.error(request, "Arquivo inválido: não é um banco SQLite (.sqlite3) do SAMU 192.")
+            return redirect("perfil")
+        arquivo.seek(0)
         # Grava em arquivo temporário e sobrescreve o DB atual.
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite3")
         for chunk in arquivo.chunks():
@@ -835,7 +892,9 @@ class BuscaFuncionariosJson(LoginRequiredMixin, View):
         } for f in qs[:15]]})
 
 
-class HistoricoFuncionarioJson(LoginRequiredMixin, View):
+class HistoricoFuncionarioJson(RoleRequiredMixin, View):
+    allowed_roles = ("ADMINISTRADOR",)
+
     def get(self, request, pk):
         funcionario = get_object_or_404(models.Funcionario, pk=pk)
         movimentacoes = (funcionario.movimentacoes
@@ -878,7 +937,9 @@ class BuscaVeiculosJson(LoginRequiredMixin, View):
 
 class HealthView(View):
     def get(self, request):
-        return JsonResponse({"status": "ok"})
+        resp = JsonResponse({"status": "ok", "app": "samu192"})
+        resp["Access-Control-Allow-Origin"] = "*"
+        return resp
 
 
 # ---------- Exportações ----------

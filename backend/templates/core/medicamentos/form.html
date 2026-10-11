@@ -71,7 +71,7 @@
         const q = loteInput.value.trim(); const med = (nomeInput && nomeInput.value.trim()) || '';
         if (!q && !med) { sug.classList.add('hidden'); return; }
         deb = setTimeout(async () => {
-            const r = await fetch(`/api/api/busca/lotes/?q=${encodeURIComponent(q)}&medicamento=${encodeURIComponent(med)}`);
+            const r = await fetch(`{% url 'api_busca_lotes' %}?q=${encodeURIComponent(q)}&medicamento=${encodeURIComponent(med)}`);
             const d = await r.json();
             if (!d.resultados.length) { sug.classList.add('hidden'); return; }
             sug.innerHTML = d.resultados.map(x => `<button type="button" data-c="${x.codigo}" class="w-full text-left px-4 py-2 hover:bg-neutrals-50 border-b border-neutrals-100 last:border-0"><div class="text-sm font-mono">${x.codigo}</div><div class="text-xs text-neutrals-600">${x.medicamento} · ${x.quantidade} un · val. ${x.validade}</div></button>`).join('');

@@ -81,6 +81,16 @@ pytest tests/ -v
 
 ---
 
+
+## 📦 Executáveis, Firebase e Android (v1.1)
+| O quê | Onde |
+|---|---|
+| `.exe` Windows / binário Linux com ícone oficial | `backend/build_windows.bat`, `backend/build_desktop.sh` ou GitHub Actions `build-desktop.yml` |
+| Backup Firebase (painel, automático, no login, terminal) | Perfil → Backup Firebase · `README_FIREBASE.md` |
+| App Android (IP do servidor + consulta offline Firebase) | `android-app/` · GitHub Actions `android-apk.yml` |
+| Regras de segurança Firebase | `firebase/firestore.rules`, `firebase/storage.rules` |
+
+
 ## 🤝 Contribuindo
 
 1. Faça um fork + branch.

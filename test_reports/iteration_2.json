@@ -1,0 +1,38 @@
+{
+  "summary": "Fase 2 do SAMU 192 testada end-to-end: permissões por papel (ADMIN/MOTORISTA/AUXILIAR/ENFERMEIRO), histórico expansível de funcionário, dashboards Chart.js com toggle, painel admin (Contas, Definições, Rede Local, Backup), exportação PDF/XLSX, registro com validação, footer vermelho e console limpo. 32/32 testes pytest Fase 2 passaram + testes Playwright confirmaram UI/integração.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Registrar (/api/registrar/)", "issues": ["Campo 'Data de Nascimento' usa <input type='date'> nativo do navegador exibindo 'mm/dd/yyyy' (locale en-US do runner). Em produção pt-BR o navegador exibirá dd/mm/yyyy, mas vale considerar um componente de calendário consistente."]},
+      {"screen": "Global", "issues": ["Tailwind via CDN (herdado da fase 1) — warning permanece."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_samu_phase2.py",
+    "/app/backend/tests/test_samu_api.py",
+    "/app/test_reports/pytest/phase2_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "views.py HistoricoFuncionarioJson usa LoginRequiredMixin (sem role_required). Qualquer usuário autenticado pode listar movimentações de qualquer funcionário via /api/api/funcionarios/<pk>/historico/. Recomenda-se restringir a ADMINISTRADOR, pois a UI de /funcionarios/ já é admin-only.",
+    "views.py RelatorioJson expõe dados sensíveis (lotes, situação, veículos) a qualquer usuário autenticado — considerar filtrar `pesquisa` por papel (motorista só vê veic_*; auxiliar/enfermeiro só vê medicamentos).",
+    "_detectar_ips() usa socket.getaddrinfo(hostname) + conexão UDP para 8.8.8.8; em container k8s pode retornar IP da pod rede interna (comportamento esperado, mas documentar que 'modo rede local' não funciona dentro de preview).",
+    "RestaurarDBView sobrescreve o SQLite com shutil.copy2 sem validação do magic header SQLite — upload de arquivo arbitrário pode corromper BD. Recomendar validar `b'SQLite format 3\\x00'`.",
+    "ApagarDBView: senha de confirmação hardcoded 'APAGAR' (OK), mas não exige senha do usuário admin — adicionar re-autenticação é boa prática."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_samu_phase2.py (novo)"
+  ],
+  "success_rate": {"backend": "100% (32/32 fase 2 + 22/22 fase 1)", "frontend": "100% dos fluxos verificados"},
+  "test_credentials": "admin/samu192 (admin), motorista.demo/motorista123, auxiliar.demo/auxiliar123, enfermeiro.demo/enfermeiro123",
+  "seed_data_creation": "Nenhum seed novo criado; usados dados do seed_samu existente (33 medicamentos, 47 lotes, 10 funcionários, 9 veículos).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_samu_phase2.py cobre: role matrix (motorista/auxiliar/enfermeiro — bloqueios 403), exportação PDF (magic %PDF) e XLSX (magic PK) só para admin, histórico de funcionário com texto 'realizou ...', rede-local JSON, backup DB (magic 'SQLite format 3'), 8 pesquisas de relatório (tipo/forma/validade/movimentacao/lotes/situacao/veic_status/veic_tipo), registro rejeita senha curta e sem letras+números. Rodar: cd /app/backend && REACT_APP_BACKEND_URL=<url> /root/.venv/bin/python -m pytest tests/ -v. Playwright confirmou: histórico expande/colapsa, 8 canvases no relatório admin / 2 canvases para motorista, toggle de gráfico funciona, menus filtrados corretamente por papel, sem erros JS no console (apenas 403s esperados ao testar negação de acesso). Suspeita de 'unterminated string literal' da iteração anterior: NÃO reproduzido — nenhum erro de parsing JS detectado em nenhuma página.",
+  "rca of the issue": "Nenhum bug crítico encontrado na fase 2. Todas as funcionalidades reportadas funcionam: controle de acesso por papel 100% consistente (menu + rotas + ações), histórico com animação OK, dashboards com toggle, painel admin completo, exports em formato válido. A suspeita anterior de 'unterminated string literal' nos templates foi investigada — não há tal erro JS; console limpo em todas as páginas testadas."
+}

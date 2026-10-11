@@ -21,8 +21,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8765",
 ]
 
-# Django roda atrás do ingress via /api. FORCE_SCRIPT_NAME cuida do prefixo.
-FORCE_SCRIPT_NAME = "/api"
+# Prefixo /api só no preview (server.py define SAMU_SCRIPT_NAME). Local/desktop/rede: raiz.
+FORCE_SCRIPT_NAME = os.environ.get("SAMU_SCRIPT_NAME") or None
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -45,6 +45,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.AgendadorFirebaseMiddleware",
 ]
 
 ROOT_URLCONF = "samu.urls"

@@ -145,6 +145,91 @@
             </form>
         </div>
     </div>
+
+    <!-- BACKUP FIREBASE -->
+    <div id="firebase" class="bg-white border border-neutrals-200 rounded-2xl shadow-card p-6 space-y-6 scroll-mt-6" data-testid="painel-firebase">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div><div class="text-[11px] uppercase tracking-[0.3em] text-samu font-semibold">Backup Firebase</div><div class="font-display text-xl font-bold">Cópia remota automática do banco</div></div>
+            <span class="badge {% if fb_cfg.firebase_simulado %}bg-orange-pale text-orange-deep{% else %}bg-greens-pale text-greens-good{% endif %}" data-testid="fb-modo-badge"><i data-lucide="{% if fb_cfg.firebase_simulado %}flask-conical{% else %}cloud{% endif %}" class="icon"></i>{% if fb_cfg.firebase_simulado %}Modo simulado (local){% else %}Firebase real{% endif %}</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="rounded-xl bg-neutrals-50 border border-neutrals-200 p-4" data-testid="fb-status-credenciais">
+                <div class="text-[11px] uppercase tracking-widest text-neutrals-600 font-semibold">Credenciais</div>
+                {% if fb_credenciais %}<div class="font-semibold mt-1 truncate">{{ fb_credenciais.project_id }}</div><div class="text-xs text-neutrals-600 truncate">{{ fb_credenciais.client_email }}</div>
+                {% else %}<div class="font-semibold mt-1 text-orange-deep">Não enviadas</div><div class="text-xs text-neutrals-600">Envie o JSON da conta de serviço</div>{% endif %}
+            </div>
+            <div class="rounded-xl bg-neutrals-50 border border-neutrals-200 p-4" data-testid="fb-status-ultimo">
+                <div class="text-[11px] uppercase tracking-widest text-neutrals-600 font-semibold">Último backup</div>
+                <div class="font-semibold mt-1">{{ fb_cfg.firebase_ultimo_backup|date:"d/m/Y \à\s H:i"|default:"Nunca" }}</div>
+                <div class="text-xs text-neutrals-600">{% if fb_cfg.firebase_sync_login %}Também sincroniza ao fazer login{% else %}Sync no login desativado{% endif %}</div>
+            </div>
+            <div class="rounded-xl bg-neutrals-50 border border-neutrals-200 p-4" data-testid="fb-status-proximo">
+                <div class="text-[11px] uppercase tracking-widest text-neutrals-600 font-semibold">Próximo automático</div>
+                <div class="font-semibold mt-1">{% if fb_proximo %}{{ fb_proximo|date:"d/m/Y \à\s H:i" }}{% else %}Desativado{% endif %}</div>
+                <div class="text-xs text-neutrals-600">{% if fb_cfg.firebase_auto %}A cada {{ fb_cfg.firebase_intervalo_horas }} h{% else %}Ative abaixo{% endif %}</div>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'firebase' %}" enctype="multipart/form-data" class="space-y-4" data-testid="fb-form">
+            {% csrf_token %}<input type="hidden" name="acao" value="salvar">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Chave da conta de serviço (.json)</span>{{ fb_form.credenciais }}<span class="block text-[11px] text-neutrals-600 mt-1">Firebase → Configurações do projeto → Contas de serviço → Gerar nova chave privada. Fica salva só neste computador.</span></label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">Bucket do Storage</span>{{ fb_form.firebase_bucket }}<span class="block text-[11px] text-neutrals-600 mt-1">Firebase → Storage. Ex.: meu-projeto.appspot.com ou meu-projeto.firebasestorage.app</span></label>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <label class="flex items-start gap-3 rounded-xl border border-neutrals-200 p-4 cursor-pointer hover:border-samu transition-colors">{{ fb_form.firebase_simulado }}<span><span class="font-semibold text-sm block">Modo simulado</span><span class="text-xs text-neutrals-600">Grava os backups em <code class="break-all">{{ fb_pasta_simulada }}</code>, sem internet — ideal para testar.</span></span></label>
+                <label class="flex items-start gap-3 rounded-xl border border-neutrals-200 p-4 cursor-pointer hover:border-samu transition-colors">{{ fb_form.firebase_sync_login }}<span><span class="font-semibold text-sm block">Sincronizar ao fazer login</span><span class="text-xs text-neutrals-600">Envia uma cópia quando alguém entra (no máx. a cada 10 min), inclusive pelo app Android.</span></span></label>
+                <div class="rounded-xl border border-neutrals-200 p-4 space-y-3 hover:border-samu transition-colors">
+                    <label class="flex items-start gap-3 cursor-pointer">{{ fb_form.firebase_auto }}<span><span class="font-semibold text-sm block">Backup automático</span><span class="text-xs text-neutrals-600">Roda em segundo plano enquanto o sistema estiver aberto.</span></span></label>
+                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wider text-neutrals-600">A cada (horas)</span>{{ fb_form.firebase_intervalo_horas }}</label>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="rounded-xl bg-gradient-to-br from-samu to-samu-dark text-white px-5 py-2.5 text-sm font-semibold hover:opacity-95 shadow-card" data-testid="fb-salvar">Salvar configurações</button>
+            </div>
+        </form>
+
+        <div class="flex flex-wrap items-center gap-2 border-t border-neutrals-200 pt-5">
+            <form method="post" action="{% url 'firebase' %}" onsubmit="const b=this.querySelector('button'); b.disabled=true; b.lastChild.textContent=' Enviando…';">{% csrf_token %}<input type="hidden" name="acao" value="enviar">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-samu text-white font-semibold px-5 py-2.5 text-sm hover:bg-samu-dark disabled:opacity-60 transition-colors" data-testid="fb-enviar-agora"><i data-lucide="cloud-upload" class="icon"></i><span> Enviar backup agora</span></button>
+            </form>
+            <form method="post" action="{% url 'firebase' %}">{% csrf_token %}<input type="hidden" name="acao" value="testar">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-white border border-samu text-samu font-semibold px-5 py-2.5 text-sm hover:bg-samu-cream transition-colors" data-testid="fb-testar"><i data-lucide="plug-zap" class="icon"></i> Testar conexão</button>
+            </form>
+            {% if fb_credenciais %}
+            <form method="post" action="{% url 'firebase' %}" onsubmit="return confirm('Remover a chave do Firebase deste computador? Os backups reais param até enviar outra.');">{% csrf_token %}<input type="hidden" name="acao" value="remover">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-white border border-neutrals-200 text-neutrals-600 font-semibold px-5 py-2.5 text-sm hover:border-samu hover:text-samu transition-colors" data-testid="fb-remover"><i data-lucide="key-round" class="icon"></i> Remover credenciais</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div>
+            <div class="text-[11px] uppercase tracking-widest text-neutrals-600 font-semibold mb-2">Histórico (últimos 10)</div>
+            <div class="overflow-x-auto rounded-xl border border-neutrals-200">
+                <table class="w-full text-sm" data-testid="fb-historico">
+                    <thead class="text-[11px] uppercase text-neutrals-600 bg-neutrals-50 border-b border-neutrals-200">
+                        <tr><th class="text-left px-4 py-3">Data</th><th class="text-left px-4 py-3">Origem</th><th class="text-left px-4 py-3">Modo</th><th class="text-left px-4 py-3">Status</th><th class="text-left px-4 py-3">Tamanho</th><th class="text-left px-4 py-3">Destino / detalhe</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-neutrals-200">
+                        {% for b in fb_historico %}
+                        <tr class="table-row" data-testid="fb-backup-{{ b.id }}">
+                            <td class="px-4 py-3 whitespace-nowrap">{{ b.criado_em|date:"d/m/Y H:i" }}</td>
+                            <td class="px-4 py-3 text-xs">{{ b.get_origem_display }}{% if b.usuario %} · {{ b.usuario.get_full_name|default:b.usuario.username }}{% endif %}</td>
+                            <td class="px-4 py-3 text-xs">{{ b.get_modo_display }}</td>
+                            <td class="px-4 py-3"><span class="badge {% if b.status == 'SUCESSO' %}bg-greens-pale text-greens-good{% else %}bg-samu-cream text-samu-dark{% endif %}">{{ b.get_status_display }}</span></td>
+                            <td class="px-4 py-3 text-xs whitespace-nowrap">{{ b.tamanho_bytes|filesizeformat }}</td>
+                            <td class="px-4 py-3 text-xs text-neutrals-600 max-w-md"><div class="truncate font-mono" title="{{ b.destino }}">{{ b.destino|default:"—" }}</div><div class="truncate" title="{{ b.mensagem }}">{{ b.mensagem }}</div></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="px-4 py-6 text-center text-neutrals-600 text-sm" data-testid="fb-historico-vazio">Nenhum backup ainda. Clique em "Enviar backup agora".</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-[11px] text-neutrals-600 mt-2">Terminal: <code>python manage.py firebase_backup --se-vencido</code> · agendar: <code>agendar_backup_windows.bat</code> ou <code>bash agendar_backup_linux.sh</code> (ver README_FIREBASE.md).</div>
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

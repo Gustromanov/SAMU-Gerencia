@@ -426,7 +426,7 @@
                 const input = document.getElementById('excluir-quantos');
                 input.max = info.lotes; input.value = 1;
             }
-            form.action = `/api/medicamentos/${info.id}/excluir/`;
+            form.action = "{% url 'medicamento_excluir' 0 %}".replace('/0/', `/${info.id}/`);
             modalExc.classList.remove('hidden'); modalExc.classList.add('flex');
             window.lucide && window.lucide.createIcons();
         });
