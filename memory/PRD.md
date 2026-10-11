@@ -54,7 +54,18 @@ TipoMedicamento, FormaMedicamento, Configuracao (singleton), Medicamento (nome+m
 ## Nota sobre `.emergent`
 Pasta `.emergent/` é da plataforma Emergent (deploy/preview). **Renomear quebra o deploy.** Em instalação local você pode ignorar/remover; nos READMEs isso é explicado.
 
+## v1.1 (Out/2026) — Build nativo, Firebase, Android
+- **Ícones oficiais** gerados do SVG (`backend/gerar_icones.py`): `assets/icons/samu192.ico/.icns/.png` + `android-app/assets/` (icon/splash). Spec usa automaticamente.
+- **Build**: `build_windows.bat`, `build_desktop.sh` (Linux usa pywebview[qt]), workflow `.github/workflows/build-desktop.yml` (artifacts Windows .zip / Linux .tar.gz; release em tags v*).
+- **main.py**: servidor multi-thread em 0.0.0.0 (SAMU_HOST), `--backup-firebase`, login persistente (private_mode=False), ícone da janela.
+- **Backup Firebase** (`core/firebase_sync.py`): Storage `samu192/backups/*.sqlite3.gz` + Firestore `samu192/snapshot`. Modo SIMULADO padrão (`backend/backups_firebase_simulado/`). Painel admin (upload JSON service account → `backend/secrets/`, bucket, testar, enviar agora, auto a cada N h, sync ao login máx. 10 min, histórico `BackupFirebase`). CLI `manage.py firebase_backup [--se-vencido|--simulado|--testar]`. Agendadores: `agendar_backup_windows.bat` (schtasks), `agendar_backup_linux.sh` (cron). Agendador em thread via `core.middleware.AgendadorFirebaseMiddleware`.
+- **Android** `android-app/` (Capacitor 6): tela IP/porta do servidor (salva, auto-reconecta, testa `/healthz/` com CORS), consulta offline via Firebase Auth + Firestore (cache local). Workflow `.github/workflows/android-apk.yml` gera APK debug.
+- Regras: `firebase/firestore.rules`, `firebase/storage.rules`.
+- **Correções**: requirements.txt agora contém Django etc.; URLs `/api/api/...` fixas nos templates → `{% url %}` (desktop/rede local); `FORCE_SCRIPT_NAME` via env `SAMU_SCRIPT_NAME` (server.py define `/api` no preview); histórico de funcionário só admin; `RelatorioJson` filtrado por papel; restaurar BD valida header SQLite.
+- Testes: iteration_2 (fase 2 100%), iteration_3 (Firebase simulado 22/22); suíte total 74 passed / 3 skipped.
+
 ## Backlog
-- Build do executável com ícone oficial (gerar `.ico` do SVG).
-- APK Android compilado (requer máquina com Android Studio).
-- Pipeline Firebase automatizada por watcher em produção.
+- P1: Validar workflows do GitHub Actions no primeiro push (não executáveis no preview).
+- P1: Testar Firebase real quando o usuário enviar credenciais.
+- P2: Restaurar backup direto do Firebase pelo painel (hoje: baixar no console + Restaurar).
+- P2: APK assinado (release) para Play Store.

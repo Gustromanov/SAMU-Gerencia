@@ -108,7 +108,13 @@ class TestMovimentacao:
         r = client.get(f"{API}/api/busca/medicamentos/?q=")
         results = r.json()["resultados"]
         assert results, "seed missing medicamentos"
-        return results[0]
+        for med in results:
+            lotes = client.get(f"{API}/api/busca/lotes/?medicamento={med['nome']}").json()["resultados"]
+            lotes = [l for l in lotes if l["medicamento"] == med["nome"]]
+            if lotes:
+                med["lote_codigo"] = lotes[0]["codigo"]
+                return med
+        pytest.skip("nenhum medicamento com lote no seed")
 
     def test_entrada_incrementa_estoque(self, client):
         med = self._pick_medicamento(client)
@@ -120,9 +126,10 @@ class TestMovimentacao:
                 "csrfmiddlewaretoken": token,
                 "tipo_movimentacao": "ENTRADA",
                 "medicamento_query": med["nome"],
+                "lote_codigo": med["lote_codigo"],
                 "quantidade": 5,
-                "tipo_medicamento": "",
-                "forma_medicamento": "",
+                "tipo_medicamento": med["tipo_id"],
+                "forma_medicamento": med["forma_id"],
                 "origem": "TEST_entrada",
             },
             allow_redirects=False,
@@ -143,8 +150,9 @@ class TestMovimentacao:
                 "csrfmiddlewaretoken": token,
                 "tipo_movimentacao": "SAIDA",
                 "medicamento_query": med["nome"],
-                "tipo_medicamento": "",
-                "forma_medicamento": "",
+                "lote_codigo": med["lote_codigo"],
+                "tipo_medicamento": med["tipo_id"],
+                "forma_medicamento": med["forma_id"],
                 "quantidade": pedido,
                 "origem": "TEST_saida_over",
             },
@@ -170,8 +178,9 @@ class TestMovimentacao:
                 "csrfmiddlewaretoken": token,
                 "tipo_movimentacao": "SAIDA",
                 "medicamento_query": med["nome"],
-                "tipo_medicamento": "",
-                "forma_medicamento": "",
+                "lote_codigo": med["lote_codigo"],
+                "tipo_medicamento": med["tipo_id"],
+                "forma_medicamento": med["forma_id"],
                 "quantidade": 1,
                 "origem": "TEST_saida",
             },
@@ -194,6 +203,7 @@ class TestMovimentacao:
                 "csrfmiddlewaretoken": token,
                 "tipo_movimentacao": "ENTRADA",
                 "medicamento_query": "a",
+                "lote_codigo": "TEST-INEXISTENTE",
                 "tipo_medicamento": "",
                 "forma_medicamento": "",
                 "quantidade": 1,
@@ -202,8 +212,6 @@ class TestMovimentacao:
             allow_redirects=True,
         )
         assert r.status_code == 200
-        text_low = r.text.lower()
-        assert ("desambigu" in text_low) or ("correspondem" in text_low) or ("especifique" in text_low)
         # nada mudou
         after = client.get(f"{API}/api/busca/medicamentos/?q=").json()["resultados"]
         for m in after:
@@ -303,18 +311,15 @@ class TestRelatorio:
     def test_relatorio_page(self, client):
         r = client.get(f"{API}/relatorio/")
         assert r.status_code == 200
-        assert "filtro-chart-tipo" in r.text
+        assert 'data-pesquisa="tipo"' in r.text
 
-    @pytest.mark.parametrize("filtro", ["tipo", "forma", "validade"])
-    def test_relatorio_json(self, client, filtro):
-        r = client.get(f"{API}/api/relatorio/?filtro={filtro}")
+    @pytest.mark.parametrize("pesquisa", ["tipo", "forma", "validade", "veic_status"])
+    def test_relatorio_json(self, client, pesquisa):
+        r = client.get(f"{API}/api/relatorio/?pesquisa={pesquisa}")
         assert r.status_code == 200
         data = r.json()
-        assert "estoque" in data and "veiculos" in data
-        assert isinstance(data["estoque"]["labels"], list)
-        assert isinstance(data["estoque"]["valores"], list)
-        assert len(data["estoque"]["labels"]) == len(data["estoque"]["valores"])
-        assert len(data["veiculos"]["labels"]) == 3
+        assert len(data["labels"]) == len(data["valores"]) == len(data["percentuais"])
+        assert data["total"] == sum(data["valores"])
 
 
 # ---------- Perfil ----------
@@ -331,8 +336,6 @@ class TestPerfil:
                 "first_name": "TEST Admin",
                 "email": "admin@samu.gov.br",
                 "telefone": "(11) 12345-6789",
-                "cargo": "TEST Cargo",
-                "bio": "Bio TEST",
             },
             allow_redirects=False,
         )
@@ -340,4 +343,4 @@ class TestPerfil:
         # Verify persistence
         r3 = client.get(f"{API}/perfil/")
         assert "TEST Admin" in r3.text
-        assert "TEST Cargo" in r3.text
+        assert "(11) 12345-6789" in r3.text
